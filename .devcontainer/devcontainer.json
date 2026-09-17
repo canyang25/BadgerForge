@@ -1,0 +1,33 @@
+{
+  "name": "Python 3 (Podman)",
+  "image": "mcr.microsoft.com/devcontainers/python:1-3.12-bookworm",
+  "workspaceMount": "source=${localWorkspaceFolder},target=/home/vscode/workspace,type=bind,Z",
+  "workspaceFolder": "/home/vscode/workspace",
+  "containerEnv": {
+    "OPENAI_API_KEY": "${localEnv:OPENAI_API_KEY}"
+  },
+  "runArgs": [
+    "--security-opt", "label=disable",
+    "--security-opt", "seccomp=unconfined"
+  ],
+  "mounts": [
+    "source=${localEnv:HOME}/.config/gcloud,target=/home/vscode/.config/gcloud,type=bind"
+  ],
+  "customizations": {
+    "vscode": {
+      "settings": {
+        "python.defaultInterpreterPath": "${workspaceFolder}/.venv/bin/python",
+        "python.terminal.activateEnvironment": true
+      },
+      "extensions": [
+        "ms-python.python",
+        "ms-python.vscode-pylance",
+        "charliermarsh.ruff",
+        "tamasfe.even-better-toml",
+        "Google.geminicodeassist"
+      ]
+    }
+  },
+  "updateContentCommand": "python3 -m venv .venv && .venv/bin/python -m pip install --upgrade pip && if [ -f requirements.txt ]; then .venv/bin/python -m pip install -r requirements.txt; fi",
+  "remoteUser": "vscode"
+}

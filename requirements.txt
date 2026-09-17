@@ -1,0 +1,18 @@
+# Core LLM Framework
+langchain
+langchain-core
+
+# Agent Framework
+langgraph
+
+# OpenAI Compatible Gateway (Allows setting custom base_url for LiteLLM, vLLM, Ollama, etc.)
+langchain-openai
+
+# Observability (Standard for LangChain/LangGraph)
+langsmith
+
+# Data validation
+pydantic
+
+# Environment variable management (for API keys and gateway URLs)
+python-dotenv
