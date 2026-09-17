@@ -95,6 +95,8 @@ docs/               Design notes and experiment log
 jobs/, .env         Gitignored
 ```
 
+`agent/state.py` and all tool inputs/outputs are Pydantic models. Parse model output into one before acting on it, so bad output fails loudly instead of reaching the container.
+
 Where does a new file go?
 
 - Changes how the agent decides → `agent/graph/`
