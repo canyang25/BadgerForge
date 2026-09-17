@@ -1,0 +1,15 @@
+# Python
+__pycache__/
+*.pyc
+.venv/
+*.egg-info/
+
+# Secrets: only .env.op (op:// references) is committed
+.env
+.env.*
+!.env.op
+
+# Harbor run output
+jobs/
+
+.DS_Store
