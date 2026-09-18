@@ -9,5 +9,6 @@ resp = client.chat.completions.create(
         {"role": "system", "content": "You are a concise assistant."},
         {"role": "user", "content": "Explain PCA in two sentences."},
     ],
+    reasoning_effort="medium",
 )
 print(resp.choices[0].message.content)

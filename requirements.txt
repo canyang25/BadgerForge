@@ -9,10 +9,15 @@ langgraph
 langchain-openai
 
 # Observability (Standard for LangChain/LangGraph)
-langsmith
 
 # Data validation
 pydantic
 
 # Environment variable management (for API keys and gateway URLs)
 python-dotenv
+# Testing
+pytest
+pytest-asyncio
+
+# Data Analysis (for local observability logs)
+pandas
