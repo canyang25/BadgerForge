@@ -21,3 +21,7 @@ pytest-asyncio
 
 # Data Analysis (for local observability logs)
 pandas
+
+# Terminal-Bench harness
+harbor>=0.23
+openai>=1.40
