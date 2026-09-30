@@ -33,11 +33,19 @@ your vault, then point `.env.op` at it:
 LLM_API_KEY=op://Employee/<your item>/credential
 ```
 
-`op vault list` and `op item list` show the names. Everything runs through
-`op run`, which injects the key for that one command only.
+`op vault list` and `op item list` show the names. `.env.op` in the repo is a
+template with a placeholder, so copy it and edit your copy — `.env.op.local`
+is gitignored:
 
 ```bash
-./scripts/run_task.sh regex-log
+cp .env.op .env.op.local   # then put your item name in it
+```
+
+Everything runs through `op run`, which injects the key for that one command
+only.
+
+```bash
+op run --env-file=.env.op.local -- ./scripts/run_task.sh regex-log
 ```
 
 Gotchas we already hit:
@@ -46,6 +54,9 @@ Gotchas we already hit:
 - First request after an idle period waits ~90s for GPU cold start.
 - `LLM_MAX_TOKENS` below ~8192 makes the reasoning model return empty
   responses and time out.
+- Long runs need the machine awake and the VPN up: prefix with `caffeinate -i`.
+  A dropped connection used to kill the whole task; the client now retries, but
+  a sleeping laptop still stalls everything.
 - Apple Silicon can't run the qemu tasks (x86 emulation lacks a syscall),
   and `build-cython-ext` has a broken reference solution upstream.
 

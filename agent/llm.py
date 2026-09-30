@@ -40,10 +40,11 @@ Improvement ideas
 - Track and enforce a token budget per task.
 """
 
+import asyncio
 import os
 
 from dotenv import load_dotenv
-from openai import AsyncOpenAI
+from openai import APIConnectionError, APITimeoutError, AsyncOpenAI, InternalServerError, RateLimitError
 
 # override=True makes .env the single source of truth: without it, a stale
 # copy of these variables exported into your shell (e.g. by the one-off
@@ -51,6 +52,17 @@ from openai import AsyncOpenAI
 # shadows every later edit to the file. To experiment with settings, edit
 # .env — or pass -m to harbor run for the model.
 load_dotenv(override=True)
+
+RETRYABLE_ERRORS = (
+    APITimeoutError,
+    APIConnectionError,
+    RateLimitError,
+    InternalServerError,
+)
+"""Failures worth retrying: the gateway is busy, asleep, or briefly unreachable."""
+
+RETRY_BASE_DELAY_SEC = 2.0
+RETRY_MAX_DELAY_SEC = 60.0
 
 _PROVIDER_PREFIXES = (
     "ollama/",
@@ -102,7 +114,15 @@ class LLMClient:
         self.model = _resolve_model(model_name)
         self.temperature = float(os.environ.get("LLM_TEMPERATURE", "0.2"))
         self.max_tokens = int(os.environ.get("LLM_MAX_TOKENS", "2048"))
-        self._client = AsyncOpenAI(base_url=base_url, api_key=api_key)
+        # BadgerBrain wakes the GPU on the first request after an idle period,
+        # which takes ~90s; the quickstart asks for a 300s floor. Retries cover
+        # the rest: a dropped VPN or a 429 from a busy gateway killed 16 of 21
+        # trials in our first baseline run, each one losing a whole task.
+        self.timeout = float(os.environ.get("LLM_TIMEOUT_SEC", "300"))
+        self.max_retries = int(os.environ.get("LLM_MAX_RETRIES", "5"))
+        self._client = AsyncOpenAI(
+            base_url=base_url, api_key=api_key, timeout=self.timeout, max_retries=0
+        )
 
     async def chat(self, messages: list[dict]) -> tuple[str, dict]:
         """Send the conversation history to the LLM and get a response.
@@ -128,12 +148,7 @@ class LLMClient:
               and ``"completion_tokens"`` (both int). Empty dict if the
               server doesn't report usage.
         """
-        response = await self._client.chat.completions.create(
-            model=self.model,
-            messages=messages,
-            temperature=self.temperature,
-            max_tokens=self.max_tokens,
-        )
+        response = await self._request_with_retries(messages)
         message = response.choices[0].message
         text = message.content or ""
         if not text:
@@ -153,3 +168,29 @@ class LLMClient:
                 "completion_tokens": response.usage.completion_tokens or 0,
             }
         return text, usage
+
+    async def _request_with_retries(self, messages: list[dict]):
+        """Send one request, retrying transient failures with exponential backoff.
+
+        Retries timeouts, connection errors, rate limits and 5xx — the failures
+        that come from the gateway or the network rather than from our request.
+        Anything else (a bad key, a bad model name) raises immediately, because
+        retrying it just wastes the task's time budget.
+        """
+        delay = RETRY_BASE_DELAY_SEC
+        last_error: Exception | None = None
+        for attempt in range(1, self.max_retries + 1):
+            try:
+                return await self._client.chat.completions.create(
+                    model=self.model,
+                    messages=messages,
+                    temperature=self.temperature,
+                    max_tokens=self.max_tokens,
+                )
+            except RETRYABLE_ERRORS as exc:
+                last_error = exc
+                if attempt == self.max_retries:
+                    break
+                await asyncio.sleep(delay)
+                delay = min(delay * 2, RETRY_MAX_DELAY_SEC)
+        raise last_error
