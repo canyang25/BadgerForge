@@ -132,6 +132,12 @@ class LLMClient:
         # which takes ~90s; the quickstart asks for a 300s floor. Retries cover
         # the rest: a dropped VPN or a 429 from a busy gateway killed 16 of 21
         # trials in our first baseline run, each one losing a whole task.
+        # Unset means the server's default, which on BadgerBrain is the
+        # highest setting: the model spends its whole completion budget
+        # thinking, the reply comes back truncated, and we get no command out
+        # of the turn. Set LLM_REASONING_EFFORT to trade thinking for
+        # instructions actually being followed — measure before changing it.
+        self.reasoning_effort = os.environ.get("LLM_REASONING_EFFORT") or None
         self.timeout = float(os.environ.get("LLM_TIMEOUT_SEC", "300"))
         self.max_retries = int(os.environ.get("LLM_MAX_RETRIES", "5"))
         self._client = AsyncOpenAI(
@@ -206,6 +212,7 @@ class LLMClient:
                     messages=messages,
                     temperature=self.temperature,
                     max_tokens=self.max_tokens,
+                    **self.extra_params(),
                 )
             except RETRYABLE_ERRORS as exc:
                 last_error = exc
@@ -214,3 +221,13 @@ class LLMClient:
                 await asyncio.sleep(delay)
                 delay = min(delay * 2, RETRY_MAX_DELAY_SEC)
         raise last_error
+
+    def extra_params(self) -> dict:
+        """Optional request fields, omitted entirely when unset.
+
+        Sending `reasoning_effort=None` is not the same as leaving it out —
+        some servers reject the explicit null — so build the dict instead.
+        """
+        if self.reasoning_effort:
+            return {"reasoning_effort": self.reasoning_effort}
+        return {}
