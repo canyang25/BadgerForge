@@ -35,6 +35,8 @@ Branches are short-lived. Delete after merge. If a branch is older than a week, 
 
 **Merge.** Squash merge, by the author, after approval and green checks. Draft PRs are for work in progress.
 
+**When nobody reviews.** A PR that has sat for 48 hours with no review may be self-merged if it is under ~300 lines and has tests, as long as you say in the PR that you're doing it and why. Anything bigger, or anything touching code the whole team runs, waits for a human — ping someone directly instead. This rule exists because four people with four agents produce more PRs than we review; a rule we ignore is worse than one that matches what we actually do.
+
 ## What an agent may do
 
 **Without asking**, inside the files your PR claimed:
