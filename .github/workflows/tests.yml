@@ -16,10 +16,9 @@ jobs:
         with:
           python-version: "3.12"
 
+      # setup-uv already created and activated a venv via python-version.
       - name: Install the package
-        run: |
-          uv venv --python 3.12
-          uv pip install -e ".[dev]"
+        run: uv pip install -e ".[dev]"
 
       - name: Run tests
         run: .venv/bin/pytest -q
