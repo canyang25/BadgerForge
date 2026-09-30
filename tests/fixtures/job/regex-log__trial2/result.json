@@ -1,0 +1,15 @@
+{
+  "verifier_result": {
+    "rewards": {
+      "reward": 1.0
+    }
+  },
+  "agent_result": {
+    "n_input_tokens": 750583,
+    "n_output_tokens": 101734,
+    "metadata": {
+      "turns": 22,
+      "finished": true
+    }
+  }
+}
