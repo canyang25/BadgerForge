@@ -1,0 +1,32 @@
+name: tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  pytest:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install the package
+        run: uv pip install --system -e ".[dev]"
+
+      - name: Run tests
+        run: pytest -q
+
+      - name: Check no secrets were committed
+        run: |
+          # .env.op and .env.op.local hold op:// references. A real key would
+          # be a long opaque string, never an op:// URI.
+          if grep -rIn --exclude-dir=.git --exclude-dir=.venv -E "sk-[A-Za-z0-9]{20,}" .; then
+            echo "::error::Something that looks like an API key is committed"
+            exit 1
+          fi
