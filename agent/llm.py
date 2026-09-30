@@ -61,6 +61,10 @@ RETRYABLE_ERRORS = (
 )
 """Failures worth retrying: the gateway is busy, asleep, or briefly unreachable."""
 
+REASONING_TAIL_CHARS = 2000
+"""How much of a cut-off response to keep. Enough to show the model where it
+ran out of budget, small enough that resending it every turn costs little."""
+
 RETRY_BASE_DELAY_SEC = 2.0
 RETRY_MAX_DELAY_SEC = 60.0
 
@@ -93,6 +97,16 @@ def _resolve_model(model_name: str | None) -> str:
         if model.startswith(prefix):
             return model[len(prefix):]
     return model
+
+
+def _tail(text: str, limit: int) -> str:
+    """Keep the last `limit` characters, flagged so the model knows why."""
+    if len(text) <= limit:
+        return text
+    return (
+        "[your previous response was cut off — you spent the whole output "
+        f"budget thinking. Last {limit} characters:]\n...{text[-limit:]}"
+    )
 
 
 class LLMClient:
@@ -151,16 +165,22 @@ class LLMClient:
         response = await self._request_with_retries(messages)
         message = response.choices[0].message
         text = message.content or ""
+        truncated = response.choices[0].finish_reason == "length"
         if not text:
-            # Reasoning models (e.g. served behind vLLM's reasoning parser)
-            # stream their thinking into `reasoning_content` and only fill
-            # `content` once the thinking closes. If generation hits
-            # max_tokens mid-thought, `content` comes back empty every turn
-            # and the agent loops on nudges until the task times out. Fall
-            # back to the (truncated) thinking text — it often contains a
-            # usable command, and it makes the failure visible in the
-            # transcript. The real fix is a larger LLM_MAX_TOKENS.
-            text = getattr(message, "reasoning_content", None) or ""
+            # Reasoning models stream thinking into `reasoning_content` and
+            # only fill `content` once the thinking closes. When generation
+            # hits max_tokens mid-thought, `content` is empty and all we have
+            # is an unfinished thought.
+            #
+            # We keep only its tail, and only so the model can see where it
+            # ran out of room. Storing the whole thing is what wrecked our
+            # baseline: 29k characters of unfinished reasoning per turn, resent
+            # on every later turn, with the model eventually emitting the same
+            # truncated thought nine times in a row.
+            thinking = getattr(message, "reasoning_content", None) or ""
+            text = _tail(thinking, REASONING_TAIL_CHARS)
+        elif truncated:
+            text = _tail(text, REASONING_TAIL_CHARS)
         usage = {}
         if response.usage is not None:
             usage = {

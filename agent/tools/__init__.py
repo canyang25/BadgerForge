@@ -105,6 +105,23 @@ def _truncate(text: str) -> str:
     return f"{text[:half]}\n... [{omitted} characters omitted] ...\n{text[-half:]}"
 
 
+def parse_exit_code(observation: str) -> int:
+    """Pull the exit code back out of a formatted observation.
+
+    ``run_shell`` returns a human-readable string because that is what the
+    model sees; the loop guard needs the number. Returns 1 (failure) when the
+    command never produced one, e.g. it timed out.
+    """
+    first, _, _ = observation.partition("\n")
+    prefix = "exit code: "
+    if first.startswith(prefix):
+        try:
+            return int(first[len(prefix):].strip())
+        except ValueError:
+            pass
+    return 1
+
+
 async def run_shell(
     environment: BaseEnvironment, command: str, timeout_sec: int
 ) -> str:
