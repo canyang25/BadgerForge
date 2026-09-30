@@ -18,4 +18,9 @@ requires = ["setuptools>=68"]
 build-backend = "setuptools.build_meta"
 
 [tool.setuptools]
-packages = ["agent", "agent.prompts", "agent.tools"]
+packages = ["agent", "agent.prompts", "agent.tools", "eval"]
+
+[tool.pytest.ini_options]
+# Only collect our own tests. test_prompt.py at the repo root is a hand-run
+# gateway demo, not a test: importing it opens a client and needs a key.
+testpaths = ["tests"]
