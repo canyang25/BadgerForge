@@ -1,5 +1,5 @@
 task,trials,reward,tokens,token_spread
-chess-best-move,2,0.000,215140,30475
+chess-best-move,3,0.000,407917,593566
 configure-git-webserver,3,1.000,228211,349244
 fix-code-vulnerability,3,1.000,232896,159839
 log-summary-date-ranges,3,1.000,35154,6033

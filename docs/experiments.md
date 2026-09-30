@@ -18,8 +18,8 @@ numbers were, what we learned. Numbers come from `scripts/score.py`.
 | | Baseline | After #8 | |
 |---|---|---|---|
 | TB score | 0.5714 | **0.8571** | +50% |
-| Total tokens | 3,104,345 | **1,249,562** | −60% |
-| Leaderboard score | 0.5404 | **0.8446** | +56% |
+| Total tokens | 3,104,345 | **1,442,339** | −54% |
+| Leaderboard score | 0.5404 | **0.8427** | +56% |
 | Wall clock | 2h 15m | ~50m | −63% |
 
 Six of seven tasks now pass all three trials. polyglot-c-py went from 0/3 at
