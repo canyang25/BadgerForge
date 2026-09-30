@@ -6,6 +6,13 @@ numbers were, what we learned. Numbers come from `scripts/score.py`.
 ## 2026-09-30 — Truncated reasoning no longer stored (#8)
 
 - Commit: `d6bf9a4` · Same slice, same 3 trials, same model as the baseline
+- **Two changes, not one.** PR #8 shipped both the truncation fix and
+  `agent/loop_guard.py` (repeat detection, stop after 8 consecutive failures).
+  The loop guard rode along uncommitted from another branch and isn't in that
+  PR's description, so the numbers below are the pair together. Measured alone
+  on the old code the loop guard was worse, so the truncation fix is almost
+  certainly doing the work — but "almost certainly" is not measured. A/B on
+  removing the guard is queued behind the reasoning-effort experiment.
 - Results: `eval/results/after-truncation-fix.csv`
 
 | | Baseline | After #8 | |
