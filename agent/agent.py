@@ -63,10 +63,18 @@ from harbor.environments.base import BaseEnvironment
 from harbor.models.agent.context import AgentContext
 
 from agent.llm import LLMClient
+from agent.loop_guard import LoopGuard
 from agent.prompts import NUDGE_MESSAGE, SYSTEM_PROMPT, observation_message
-from agent.tools import parse_action, run_shell
+from agent.tools import parse_action, parse_exit_code, run_shell
 
 MAX_TURNS = int(os.environ.get("AGENT_MAX_TURNS", "100"))
+MAX_TURNS_WITHOUT_ACTION = int(os.environ.get("AGENT_MAX_TURNS_WITHOUT_ACTION", "4"))
+"""Give up after this many consecutive turns that produce no command.
+
+A reasoning model that spends its whole output budget thinking returns nothing
+usable, turn after turn. In our baseline one task emitted the same truncated
+thought nine times in a row and then hit the task timeout, having spent 1M
+tokens. Four strikes and we stop: the remaining budget buys nothing."""
 COMMAND_TIMEOUT_SEC = int(os.environ.get("AGENT_COMMAND_TIMEOUT_SEC", "60"))
 
 
@@ -133,10 +141,14 @@ class BaselineAgent(BaseAgent):
             {"role": "user", "content": instruction},
         ]
 
+        guard = LoopGuard()
         n_input = 0
         n_output = 0
         turns = 0
         finished = False
+        turns_without_action = 0
+        stop_reason = None
+        stopped_by_guard = None
 
         for _ in range(MAX_TURNS):
             turns += 1
@@ -153,6 +165,7 @@ class BaselineAgent(BaseAgent):
             context.metadata = {
                 "turns": turns,
                 "finished": finished,
+                "stopped_by_guard": stopped_by_guard,
                 "messages": messages,
             }
 
@@ -168,17 +181,43 @@ class BaselineAgent(BaseAgent):
 
             if action.kind == "none":
                 # The LLM didn't produce a bash block or TASK_COMPLETE.
-                # Nudge it to follow the protocol.
+                turns_without_action += 1
+                if turns_without_action >= MAX_TURNS_WITHOUT_ACTION:
+                    stop_reason = "no_action"
+                    context.metadata["stop_reason"] = stop_reason
+                    self.logger.info(
+                        "stopping after %d turns with no command", turns_without_action
+                    )
+                    break
+                # Nudge it back on-protocol.
                 messages.append({"role": "user", "content": NUDGE_MESSAGE})
                 continue
 
-            # 3. Execute the command inside the task's Docker container.
+            turns_without_action = 0
+
+            # 3. Ask the loop guard whether this command is worth running.
+            verdict = guard.before(action.command)
+            if not verdict.run:
+                self.logger.info("turn %d: refused repeat: %s", turns, action.command[:120])
+                messages.append({"role": "user", "content": verdict.note})
+                continue
+
+            # 4. Execute the command inside the task's Docker container.
             self.logger.info("turn %d: %s", turns, action.command[:200])
             observation = await run_shell(
                 environment, action.command, timeout_sec=COMMAND_TIMEOUT_SEC
             )
+            after = guard.after(action.command, parse_exit_code(observation))
 
-            # 4. Feed the output back to the LLM as context for the next turn.
-            messages.append(
-                {"role": "user", "content": observation_message(observation)}
-            )
+            # 5. Feed the output back to the LLM as context for the next turn.
+            note = verdict.note or after.note
+            content = observation_message(observation)
+            if note:
+                content = f"{content}\n\n{note}"
+            messages.append({"role": "user", "content": content})
+
+            if after.stop:
+                stopped_by_guard = "consecutive_failures"
+                context.metadata["stopped_by_guard"] = stopped_by_guard
+                self.logger.info("stopping: %s", after.note)
+                break
