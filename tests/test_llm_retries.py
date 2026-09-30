@@ -80,3 +80,14 @@ def test_does_not_retry_a_bad_key(monkeypatch):
     with pytest.raises(AuthenticationError):
         asyncio.run(client._request_with_retries([]))
     assert fake.calls == 1
+
+
+def test_reasoning_effort_is_omitted_by_default(monkeypatch):
+    client = make_client(monkeypatch)
+    assert client.reasoning_effort is None
+    assert client.extra_params() == {}
+
+
+def test_reasoning_effort_is_sent_when_set(monkeypatch):
+    client = make_client(monkeypatch, LLM_REASONING_EFFORT="medium")
+    assert client.extra_params() == {"reasoning_effort": "medium"}
