@@ -1,0 +1,56 @@
+# Experiment log
+
+Newest first. One entry per run we want to remember: what changed, what the
+numbers were, what we learned. Numbers come from `scripts/score.py`.
+
+## 2026-09-24 — Baseline, unmodified starter agent
+
+- Commit: `4ef6939` · Model: qwen3.8-27b (BadgerBrain) · Tasks: 7-task dev slice, 3 trials each
+- Results: `eval/results/baseline.csv`
+
+| | |
+|---|---|
+| TB score | **0.5714** |
+| Total tokens | **3,104,345** |
+| Leaderboard score | **0.5404** |
+| Runtime | 2h 15m, 3 concurrent |
+
+| task | pass | avg tokens | avg turns |
+|---|---|---|---|
+| log-summary-date-ranges | 3/3 | 29,893 | 8 |
+| sqlite-with-gcov | 3/3 | 255,283 | 35 |
+| fix-code-vulnerability | 3/3 | 279,763 | 29 |
+| configure-git-webserver | 2/3 | 152,541 | 20 |
+| regex-log | 1/3 | 727,835 | 21 |
+| chess-best-move | 0/3 | 785,618 | 26 |
+| polyglot-c-py | 0/3 | 873,412 | 22 |
+
+### What we learned
+
+**Every failure is a timeout, not a wrong answer.** All 7 failing trials ended
+in AgentTimeoutError. The agent doesn't get the answer wrong; it runs out of
+time still trying.
+
+**Token spend predicts failure, inverted.** Tasks it solves cost 30k–280k
+tokens; the two it never solves cost 785k and 873k. Burning tokens means stuck
+in a loop, not working hard. So the lever isn't a smarter model — it's noticing
+when it's stuck.
+
+**One trial tells you nothing.** regex-log returned 1.0, 0.0 and a timeout
+across three trials, with tokens from 50k to 460k. Compare changes on at least
+3 trials, and treat differences smaller than the spread as noise.
+
+**Input tokens dominate** — 90%+ of spend. The loop re-sends the whole
+conversation every turn, so turn 30 pays for turns 1–29 again.
+
+### Next
+
+1. Loop detection — bail out or change approach after repeated failing commands
+2. Turn cap well below the current 100 (nothing succeeded past 35 turns)
+3. Context trimming — drop or summarize old command output
+
+### Note on the first attempt
+
+An earlier run of the same slice (2026-09-23) lost 16 of 21 trials to
+APITimeoutError and took 18h37m. Cause was network drops with no retry in the
+client; fixed in #5. Don't compare against those numbers.
