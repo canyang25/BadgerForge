@@ -64,6 +64,7 @@ from harbor.models.agent.context import AgentContext
 
 from agent.llm import LLMClient
 from agent.loop_guard import LoopGuard
+from agent.probe import survey
 from agent.prompts import NUDGE_MESSAGE, SYSTEM_PROMPT, observation_message
 from agent.tools import parse_action, parse_exit_code, run_shell
 
@@ -136,9 +137,14 @@ class BaselineAgent(BaseAgent):
         # The conversation is a plain list of OpenAI-format message dicts.
         # The system prompt (from prompts.py) tells the LLM how to behave;
         # the first user message is the task instruction from Harbor.
+        first_message = instruction
+        environment_report = await survey(environment)
+        if environment_report:
+            first_message = f"{instruction}\n\n{environment_report}"
+
         messages = [
             {"role": "system", "content": SYSTEM_PROMPT},
-            {"role": "user", "content": instruction},
+            {"role": "user", "content": first_message},
         ]
 
         guard = LoopGuard()
