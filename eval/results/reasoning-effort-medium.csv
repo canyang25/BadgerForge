@@ -1,0 +1,8 @@
+task,trials,reward,tokens,token_spread
+chess-best-move,3,0.000,301451,426468
+configure-git-webserver,3,0.667,24410,18921
+fix-code-vulnerability,3,1.000,299988,152600
+log-summary-date-ranges,3,1.000,28211,10417
+polyglot-c-py,3,1.000,56135,50795
+regex-log,3,1.000,79036,62746
+sqlite-with-gcov,3,0.667,54237,43928

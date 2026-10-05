@@ -3,6 +3,59 @@
 Newest first. One entry per run we want to remember: what changed, what the
 numbers were, what we learned. Numbers come from `scripts/score.py`.
 
+## 2026-10-04 — Loop guard removed (plan Phase 2 #2)
+
+- Code: `main` at `88fc9d9` with `agent/loop_guard.py` unwired from the loop
+  (branch `exp/no-loop-guard`, not merged). Default reasoning effort.
+- Same slice, 3 trials each. Ran as 11 trials plus a 10-trial fill after the
+  first run was cut off; both halves used identical code.
+- Results: `eval/results/no-loop-guard.csv`
+- Compared against the 2026-09-30 run, which had the guard.
+
+| | With guard | Without |
+|---|---|---|
+| TB score | 0.8571 | 0.8571 |
+| Total tokens | **1,442,339** | 2,099,677 (+46%) |
+| Leaderboard score | **0.8427** | 0.8361 |
+
+**Keep it.** Identical tasks pass with and without it, so it doesn't touch
+correctness — the jump from 0.57 to 0.86 was the truncation fix alone, which
+settles the question the 09-30 entry left open. What the guard does is save
+tokens, mostly on the tasks where the agent flails: chess-best-move (408k →
+756k without it) and configure-git-webserver (228k → 450k).
+
+Token spread is still large (chess-best-move varied by 834k across three
+trials without the guard), so +46% is partly noise. The direction is
+consistent and it costs no score.
+
+## 2026-10-04 — Reasoning effort `medium` (plan Phase 2 #1)
+
+- Code: `main` at `88fc9d9`, `LLM_REASONING_EFFORT=medium`, everything else
+  as the 09-30 run
+- Results: `eval/results/reasoning-effort-medium.csv`
+
+| | Default (highest) | medium |
+|---|---|---|
+| TB score | **0.8571** | 0.7619 |
+| Total tokens | 1,442,339 | **843,468** (−42%) |
+| Leaderboard score | **0.8427** | 0.7535 |
+| Wall clock | ~50m | 27m |
+
+**Stay on the default.** medium cut tokens 42% but dropped
+configure-git-webserver and sqlite-with-gcov from 3/3 to 2/3.
+
+On 7 tasks the token penalty is tiny next to score: 600k tokens saved is worth
+0.006 points, two lost trials cost 0.095. That changes at full scale, because
+the penalty uses *total* tokens while the score is a mean. Extrapolating per-task
+averages to all 89 tasks:
+
+- default: 0.857 − 0.01 × 18.3 = **0.674**
+- medium:  0.762 − 0.01 × 10.7 = **0.655**
+
+Default still wins, by 0.02 instead of 0.09. Worth retesting once correctness
+improves. The score gap is two trials out of 21, so some of it may be noise —
+but nothing here suggests medium is better.
+
 ## 2026-09-30 — Truncated reasoning no longer stored (#8)
 
 - Commit: `d6bf9a4` · Same slice, same 3 trials, same model as the baseline
