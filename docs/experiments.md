@@ -3,6 +3,49 @@
 Newest first. One entry per run we want to remember: what changed, what the
 numbers were, what we learned. Numbers come from `scripts/score.py`.
 
+## 2026-10-05 — System prompt: environment, tools, raw data (plan Phase 2 #6) ✗
+
+- Code: branch `ruoshi/feat-prompt-environment` (`f1f89f4`, not merged). Four
+  edits to `agent/prompts/system.md`, all general: survey the environment
+  first; install established tools rather than reimplement; check the network
+  instead of assuming there is none; never print raw data to read by eye.
+- Results: `eval/results/prompt-environment.csv`
+
+| | Current prompt | New prompt |
+|---|---|---|
+| TB score | **0.8571** | 0.8095 |
+| Total tokens | **1,442,339** | 1,551,816 (+8%) |
+| Leaderboard score | **0.8427** | 0.7940 |
+
+**Negative result — not merging.** The score gap is one trial
+(polyglot-c-py 2/3), so this is "no evidence of improvement" rather than
+"worse". Behaviour barely moved:
+
+| Behaviour, across 21 trials | Current | New |
+|---|---|---|
+| Checked the network | 11 | 14 |
+| `apt` install | 9 | 12 |
+| Put a >5k-character output into the conversation | 6 | 5 |
+
+The rule that mattered most, don't dump raw data, was mostly ignored:
+chess-best-move still dumped pixel data in 3/3 trials, every one hitting the
+6,000-character observation cap. One trial installed a chess engine for the
+first time, then still couldn't read the board and timed out.
+
+**Correction to the chess-best-move diagnosis above.** It blamed the starter
+prompt's "there is no network" line for the agent never installing tools. The
+old prompt still produced 9 `apt` installs on other tasks, so the model mostly
+ignores that line; it isn't the main cause.
+
+**Lesson: principles in the prompt change behaviour weakly.** To actually
+change what the agent does, enforce it in code. Candidates, both general:
+
+- Run a fixed environment probe (network, package managers, top-level
+  directories) from the agent code before the first turn and put the result in
+  the first message, instead of hoping the model thinks to look.
+- Detect binary- or matrix-like command output and replace it with a short
+  summary, instead of asking the model not to print it.
+
 ## 2026-10-04 — Why chess-best-move never passes (plan Phase 2 #5)
 
 Diagnosis from transcripts, no new run. 13 trials across five runs, 0 passes.

@@ -46,7 +46,9 @@ compared against the current best.
 | 3 | Turn cap well below 100 | Nothing has passed after ~35 turns; can we stop sooner? | |
 | 4 | Parse model output into Pydantic models, retry on bad format | Fewer wasted turns on malformed replies? | |
 | 5 | ~~Why `chess-best-move` never passes~~ | Not by itself: it's a text-only model trying to read an image, without surveying the environment or installing tools. Root causes are general → #6 | ruoshi ✅ |
-| 6 | System prompt: survey the environment first; install established tools when the network allows instead of reimplementing; process large raw data with code, never read it into context | Do these general habits help the whole slice, or cost tokens? No task-specific content | |
+| 6 | ~~System prompt: survey environment, prefer tools, no raw data~~ | No measurable gain (0.81 vs 0.86, within noise); the model mostly ignored the rules. Not merged | ruoshi ✗ |
+| 7 | Environment probe run by the agent code before turn 1, result in the first message | Does enforcing the survey in code do what the prompt couldn't? | |
+| 8 | Summarise binary- or matrix-like command output in code | Fewer tokens wasted on dumps the model can't read? | |
 
 ## Phase 3 — LangGraph
 
