@@ -3,6 +3,104 @@
 Newest first. One entry per run we want to remember: what changed, what the
 numbers were, what we learned. Numbers come from `scripts/score.py`.
 
+## 2026-10-04 — Why chess-best-move never passes (plan Phase 2 #5)
+
+Diagnosis from transcripts, no new run. 13 trials across five runs, 0 passes.
+
+The task: read a chess position from `chess_board.png`, write every
+mate-in-one for white to `/app/move.txt`. The grader wants exactly the set of
+winning moves, nothing more or less.
+
+| What the agent did | Trials |
+|---|---|
+| Rendered squares as ASCII art and read hundreds of lines back into context | most |
+| `pip install python-chess` | 7 / 13 |
+| Installed a chess engine | **0 / 13** |
+| Used `apt` for anything | **0 / 13** |
+| Looked for resources shipped in the image (a font file sits in `/fonts`) | **0 / 13** |
+| Wrote `move.txt` at all | 2 / 13, both wrong |
+| Timed out (15 min) / gave up after 4 empty turns | 7 / 4 |
+
+One representative 33-turn trial: turns 3–10 dump pixel art into the
+conversation, 12–24 try to read pieces off it, 25–33 hand-write mate detection.
+Six of the 33 turns were truncated mid-thought.
+
+**Why it fails.** The model is text-only and is trying to *look* at an image
+through ASCII dumps, which it can't do accurately — both answers it did write
+had the position wrong. Meanwhile it never surveyed the environment (the asset
+the board was drawn from was on disk) and never installed an established tool
+when the network allowed it, choosing to reimplement instead.
+
+**What not to do.** Telling the prompt about fonts or chess engines is
+task-specific hardcoding, which the rules forbid and the top-5 code review
+checks for. It's also 1 task in 89.
+
+**What generalises.** Three habits that likely cost us on other tasks too:
+
+1. Not surveying the environment first: unusual directories, network access,
+   available package managers.
+2. Reimplementing a standard tool instead of installing it when it can.
+3. Pulling large raw data — pixels, binaries, long dumps — into the context to
+   read by eye, instead of processing it with code.
+
+Rules allow adjusting strategy by task *category*, so these can go into the
+system prompt as general principles. Queued as Phase 2 #6, measured on the
+whole slice: the point is whether the other six tasks improve or regress and
+what happens to tokens, not whether chess-best-move flips.
+
+## 2026-10-04 — Loop guard removed (plan Phase 2 #2)
+
+- Code: `main` at `88fc9d9` with `agent/loop_guard.py` unwired from the loop
+  (branch `exp/no-loop-guard`, not merged). Default reasoning effort.
+- Same slice, 3 trials each. Ran as 11 trials plus a 10-trial fill after the
+  first run was cut off; both halves used identical code.
+- Results: `eval/results/no-loop-guard.csv`
+- Compared against the 2026-09-30 run, which had the guard.
+
+| | With guard | Without |
+|---|---|---|
+| TB score | 0.8571 | 0.8571 |
+| Total tokens | **1,442,339** | 2,099,677 (+46%) |
+| Leaderboard score | **0.8427** | 0.8361 |
+
+**Keep it.** Identical tasks pass with and without it, so it doesn't touch
+correctness — the jump from 0.57 to 0.86 was the truncation fix alone, which
+settles the question the 09-30 entry left open. What the guard does is save
+tokens, mostly on the tasks where the agent flails: chess-best-move (408k →
+756k without it) and configure-git-webserver (228k → 450k).
+
+Token spread is still large (chess-best-move varied by 834k across three
+trials without the guard), so +46% is partly noise. The direction is
+consistent and it costs no score.
+
+## 2026-10-04 — Reasoning effort `medium` (plan Phase 2 #1)
+
+- Code: `main` at `88fc9d9`, `LLM_REASONING_EFFORT=medium`, everything else
+  as the 09-30 run
+- Results: `eval/results/reasoning-effort-medium.csv`
+
+| | Default (highest) | medium |
+|---|---|---|
+| TB score | **0.8571** | 0.7619 |
+| Total tokens | 1,442,339 | **843,468** (−42%) |
+| Leaderboard score | **0.8427** | 0.7535 |
+| Wall clock | ~50m | 27m |
+
+**Stay on the default.** medium cut tokens 42% but dropped
+configure-git-webserver and sqlite-with-gcov from 3/3 to 2/3.
+
+On 7 tasks the token penalty is tiny next to score: 600k tokens saved is worth
+0.006 points, two lost trials cost 0.095. That changes at full scale, because
+the penalty uses *total* tokens while the score is a mean. Extrapolating per-task
+averages to all 89 tasks:
+
+- default: 0.857 − 0.01 × 18.3 = **0.674**
+- medium:  0.762 − 0.01 × 10.7 = **0.655**
+
+Default still wins, by 0.02 instead of 0.09. Worth retesting once correctness
+improves. The score gap is two trials out of 21, so some of it may be noise —
+but nothing here suggests medium is better.
+
 ## 2026-09-30 — Truncated reasoning no longer stored (#8)
 
 - Commit: `d6bf9a4` · Same slice, same 3 trials, same model as the baseline

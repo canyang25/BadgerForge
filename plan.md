@@ -41,11 +41,12 @@ compared against the current best.
 
 | # | Experiment | Question it answers | Owner |
 |---|---|---|---|
-| 1 | `LLM_REASONING_EFFORT=medium` | Does less thinking cost score, or just tokens? | ruoshi |
-| 2 | Remove `agent/loop_guard.py` | Is the loop guard earning its place, or was #8 all the truncation fix? | ruoshi |
+| 1 | ~~`LLM_REASONING_EFFORT=medium`~~ | Costs score: 0.76 vs 0.86. Staying on default — see experiments.md | ruoshi ✅ |
+| 2 | ~~Remove `agent/loop_guard.py`~~ | Keep it: same score, 46% more tokens without it. The 0.86 was the truncation fix | ruoshi ✅ |
 | 3 | Turn cap well below 100 | Nothing has passed after ~35 turns; can we stop sooner? | |
 | 4 | Parse model output into Pydantic models, retry on bad format | Fewer wasted turns on malformed replies? | |
-| 5 | Why `chess-best-move` never passes | Is it fixable without task-specific code? | |
+| 5 | ~~Why `chess-best-move` never passes~~ | Not by itself: it's a text-only model trying to read an image, without surveying the environment or installing tools. Root causes are general → #6 | ruoshi ✅ |
+| 6 | System prompt: survey the environment first; install established tools when the network allows instead of reimplementing; process large raw data with code, never read it into context | Do these general habits help the whole slice, or cost tokens? No task-specific content | |
 
 ## Phase 3 — LangGraph
 
