@@ -3,6 +3,64 @@
 Newest first. One entry per run we want to remember: what changed, what the
 numbers were, what we learned. Numbers come from `scripts/score.py`.
 
+## 2026-10-06 — Recovery turn after truncation (plan Phase 2 #10) ✗
+
+- Code: branch `ruoshi/feat-truncation-recovery` (`a4229cb`, not merged).
+  After a turn that is truncated and gives no command, the next request uses
+  `reasoning_effort=medium`; the turn after goes back to the default.
+  Everything else as the current agent.
+- Results: `eval/results/truncation-recovery.csv`. Gateway healthy: median
+  11 s/turn, no slow trials, no connection failures.
+
+| | Current | With recovery turn |
+|---|---|---|
+| TB score | **0.8571** | 0.8095 |
+| Total tokens | **1,442,339** | 1,723,675 (+20%) |
+| Leaderboard score | **0.8427** | 0.7923 |
+
+**Not merging — the recovery turn doesn't recover.** It fired 26 times and got
+a command back 17 times (65%). Without it, across the previous four runs, the
+turn after a truncated, command-less turn produced a command 72 times out of
+119 (61%). Once the model is stuck on a hard step, one notch less effort
+doesn't get it out: a third of the time it still thinks past the budget.
+
+Neither gap in the table comes from the change:
+
+- regex-log's one failure: the recovery turn wrote the first draft of the
+  answer, but full-effort turns rewrote it six more times, ending with an edit
+  that stripped every space out of the regex. The container has no Python, so
+  the agent couldn't test what it wrote.
+- configure-git-webserver ran one trial to 84 turns and 1.5M tokens, with one
+  truncation and one recovery turn, and passed. That trial alone adds more to
+  the total (+342k) than the whole difference (+281k).
+
+### Finding: a pass at turn 84
+
+That configure-git-webserver trial passed at turn 84. Phase 2 #3 rested on
+"nothing passes after ~35 turns"; a 40-turn cap would have failed this trial.
+#3 is on hold until a broader slice shows how many passes come late.
+
+### Finding: the dev slice is saturated
+
+| Run | TB score |
+|---|---|
+| Current config, run twice | 0.8571, 0.8571 |
+| System prompt (#6) | 0.8095 |
+| Environment probe (#7) | 0.7143, partly a degraded gateway |
+| Recovery turn (#10) | 0.8095 |
+
+In both runs of the current config, the six tasks other than chess-best-move
+passed all 36 trials, and chess-best-move has never passed. On this slice a
+change can only tie or lose: six tasks have no headroom and the seventh is out
+of reach. Losing one trial is expected noise. If one trial in 30 fails by
+chance, which fits 36/36, a run of 18 drops at least one about 46% of the
+time.
+
+So the last three experiments didn't show their changes are useless. They
+showed this slice can't tell. Before more Phase 2 work, rebuild the slice from
+tasks the agent sometimes passes: one trial of all 89 tasks on x86, which also
+gives our first full score, then ~10 tasks with mixed results.
+
 ## 2026-10-05 — Environment probe in code (plan Phase 2 #7) ✗
 
 - Code: branch `ruoshi/feat-env-probe` (`a62e6b6`, not merged). Before turn 1
