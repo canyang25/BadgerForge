@@ -3,6 +3,131 @@
 Newest first. One entry per run we want to remember: what changed, what the
 numbers were, what we learned. Numbers come from `scripts/score.py`.
 
+## 2026-10-06 — Recovery turn after truncation (plan Phase 2 #10) ✗
+
+- Code: branch `ruoshi/feat-truncation-recovery` (`a4229cb`, not merged).
+  After a turn that is truncated and gives no command, the next request uses
+  `reasoning_effort=medium`; the turn after goes back to the default.
+  Everything else as the current agent.
+- Results: `eval/results/truncation-recovery.csv`. Gateway healthy: median
+  11 s/turn, no slow trials, no connection failures.
+
+| | Current | With recovery turn |
+|---|---|---|
+| TB score | **0.8571** | 0.8095 |
+| Total tokens | **1,442,339** | 1,723,675 (+20%) |
+| Leaderboard score | **0.8427** | 0.7923 |
+
+**Not merging — the recovery turn doesn't recover.** It fired 26 times and got
+a command back 17 times (65%). Without it, across the previous four runs, the
+turn after a truncated, command-less turn produced a command 72 times out of
+119 (61%). Once the model is stuck on a hard step, one notch less effort
+doesn't get it out: a third of the time it still thinks past the budget.
+
+Neither gap in the table comes from the change:
+
+- regex-log's one failure: the recovery turn wrote the first draft of the
+  answer, but full-effort turns rewrote it six more times, ending with an edit
+  that stripped every space out of the regex. The container has no Python, so
+  the agent couldn't test what it wrote.
+- configure-git-webserver ran one trial to 84 turns and 1.5M tokens, with one
+  truncation and one recovery turn, and passed. That trial alone adds more to
+  the total (+342k) than the whole difference (+281k).
+
+### Finding: a pass at turn 84
+
+That configure-git-webserver trial passed at turn 84. Phase 2 #3 rested on
+"nothing passes after ~35 turns"; a 40-turn cap would have failed this trial.
+#3 is on hold until a broader slice shows how many passes come late.
+
+### Finding: the dev slice is saturated
+
+| Run | TB score |
+|---|---|
+| Current config, run twice | 0.8571, 0.8571 |
+| System prompt (#6) | 0.8095 |
+| Environment probe (#7) | 0.7143, partly a degraded gateway |
+| Recovery turn (#10) | 0.8095 |
+
+In both runs of the current config, the six tasks other than chess-best-move
+passed all 36 trials, and chess-best-move has never passed. On this slice a
+change can only tie or lose: six tasks have no headroom and the seventh is out
+of reach. Losing one trial is expected noise. If one trial in 30 fails by
+chance, which fits 36/36, a run of 18 drops at least one about 46% of the
+time.
+
+So the last three experiments didn't show their changes are useless. They
+showed this slice can't tell. Before more Phase 2 work, rebuild the slice from
+tasks the agent sometimes passes: one trial of all 89 tasks on x86, which also
+gives our first full score, then ~10 tasks with mixed results.
+
+## 2026-10-05 — Environment probe in code (plan Phase 2 #7) ✗
+
+- Code: branch `ruoshi/feat-env-probe` (`a62e6b6`, not merged). Before turn 1
+  the agent runs a fixed shell probe — working directory, non-standard
+  top-level directories, package managers, network reachability — and appends
+  the ~400-character result to the task instruction. Nothing task-specific; a
+  unit test fails if the probe ever names a task.
+- Results: `eval/results/env-probe.csv`. Three trials lost to
+  `APIConnectionError` (one each of chess-best-move, configure-git-webserver,
+  fix-code-vulnerability) were dropped and re-run with the same code.
+
+| | Current | With probe |
+|---|---|---|
+| TB score | **0.8571** | 0.7143 |
+| Total tokens | 1,442,339 | **1,309,838** (−9%) |
+| Leaderboard score | **0.8427** | 0.7012 |
+
+**Not merging.**
+
+It works mechanically: the survey reached the model in every trial. But the
+case it was built for didn't move. chess-best-move saw `/fonts: noto.ttf` in
+its first message and still never used it (0/3; one trial installed a chess
+engine and still couldn't read the board). Having the information isn't
+enough — connecting "a font file" to "this is what drew the board" is a
+reasoning step the model doesn't make.
+
+Where the three lost trials went:
+
+| Trial | Cause |
+|---|---|
+| regex-log, timed out at 11 turns | Gateway degraded: 612 s per turn, so 15 minutes bought 11 turns. Not the agent |
+| polyglot-c-py, stopped at 4 turns | Four consecutive turns truncated mid-thought → no-action stop |
+| regex-log, stopped at 4 turns | Same |
+
+That early stop happened 0 times in the 84 trials of the other four runs and
+twice here, which looks suspicious. But first-turn behaviour didn't change
+(turn 1 truncated in 6/21 trials here and 6/21 in the control; first command
+exploratory in 15/21 vs 13/21), so there's no mechanism tying it to the
+probe, and with five runs to compare, one of them showing two by chance is
+roughly a 1-in-5 event.
+
+So: no evidence it helps, can't rule out that it hurts, and the case that
+motivated it failed. A re-run on a healthy gateway wouldn't change the
+decision, so we didn't spend one.
+
+### Side findings
+
+**A degraded gateway silently spoils a run.**
+
+| Run | Seconds per turn, median | Mean |
+|---|---|---|
+| Control | 15 | 19 |
+| Other runs | 10–13 | 11–18 |
+| This run | 17 | **85** |
+
+Between 16:39 and 16:51 UTC turns took about ten minutes. The retry policy
+from #5 (300 s timeout, 5 attempts) saves a trial when the connection drops,
+but when the gateway is merely slow it spends the 15-minute task budget
+waiting. Nothing in `scripts/score.py` shows this; we only found it by
+looking at timestamps. → Phase 2 #9.
+
+**The four-strike no-action stop can kill a task before it starts.** It was
+added in #8 to stop a model that emitted the same truncated thought nine
+times. On a task that needs hard thinking from turn 1, four truncated turns in
+a row ends the task before a single command has run — both early stops above
+passed 3/3 in the control. → Phase 2 #10.
+
 ## 2026-10-05 — System prompt: environment, tools, raw data (plan Phase 2 #6) ✗
 
 - Code: branch `ruoshi/feat-prompt-environment` (`f1f89f4`, not merged). Four

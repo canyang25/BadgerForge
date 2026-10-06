@@ -10,7 +10,9 @@ run live in [docs/experiments.md](docs/experiments.md).
   `chess-best-move`, `configure-git-webserver`, `fix-code-vulnerability`,
   `log-summary-date-ranges`, `polyglot-c-py`, `regex-log`, `sqlite-with-gcov`.
   Left out: `build-cython-ext` (broken reference solution) and the two qemu
-  tasks (can't run on Apple Silicon).
+  tasks (can't run on Apple Silicon). **Saturated as of 2026-10-06:** six
+  tasks always pass and chess-best-move never does, so it can no longer show
+  an improvement. Being replaced — see below.
 - **3 trials per task, always.** One task returned pass, fail and timeout
   across three trials of the same code. A difference smaller than the
   per-task spread in `scripts/score.py` is noise.
@@ -39,16 +41,24 @@ Also landed: retries for gateway drops (#5), CI (#10), reasoning-effort switch
 Small, measurable changes before any rewrite. Each is one dev-slice run
 compared against the current best.
 
+**Next: rebuild the dev slice.** The current one can't measure improvements
+any more (experiments.md, 2026-10-06). Run all 89 tasks once on x86, which
+gives our first full score, then choose ~10 tasks with mixed results as the
+new slice. Re-run the current config on it as the new baseline before any
+further item below. Owner: ruoshi.
+
 | # | Experiment | Question it answers | Owner |
 |---|---|---|---|
 | 1 | ~~`LLM_REASONING_EFFORT=medium`~~ | Costs score: 0.76 vs 0.86. Staying on default — see experiments.md | ruoshi ✅ |
 | 2 | ~~Remove `agent/loop_guard.py`~~ | Keep it: same score, 46% more tokens without it. The 0.86 was the truncation fix | ruoshi ✅ |
-| 3 | Turn cap well below 100 | Nothing has passed after ~35 turns; can we stop sooner? | |
+| 3 | Turn cap well below 100 | **On hold:** a trial passed at turn 84 (2026-10-06), so the premise doesn't hold. Revisit on the new slice | |
 | 4 | Parse model output into Pydantic models, retry on bad format | Fewer wasted turns on malformed replies? | |
 | 5 | ~~Why `chess-best-move` never passes~~ | Not by itself: it's a text-only model trying to read an image, without surveying the environment or installing tools. Root causes are general → #6 | ruoshi ✅ |
 | 6 | ~~System prompt: survey environment, prefer tools, no raw data~~ | No measurable gain (0.81 vs 0.86, within noise); the model mostly ignored the rules. Not merged | ruoshi ✗ |
-| 7 | Environment probe run by the agent code before turn 1, result in the first message | Does enforcing the survey in code do what the prompt couldn't? | |
+| 7 | ~~Environment probe run by the agent code before turn 1~~ | No evidence it helps (0.71 vs 0.86, partly a degraded gateway); chess-best-move saw the font and still ignored it. Not merged | ruoshi ✗ |
 | 8 | Summarise binary- or matrix-like command output in code | Fewer tokens wasted on dumps the model can't read? | |
+| 9 | `scripts/score.py` reports gateway health | Implemented in #17: flags trials over 40 s/turn **and** under 30 tok/s, lists connection failures | ruoshi → #17 |
+| 10 | ~~Lower reasoning effort for one turn after a truncated, command-less turn~~ | Doesn't recover: got a command 65% of the time vs 61% without it. Not merged. Raising `LLM_MAX_TOKENS` untested | ruoshi ✗ |
 
 ## Phase 3 — LangGraph
 
