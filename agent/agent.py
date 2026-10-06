@@ -77,6 +77,17 @@ thought nine times in a row and then hit the task timeout, having spent 1M
 tokens. Four strikes and we stop: the remaining budget buys nothing."""
 COMMAND_TIMEOUT_SEC = int(os.environ.get("AGENT_COMMAND_TIMEOUT_SEC", "60"))
 
+RECOVERY_EFFORT = os.environ.get("AGENT_RECOVERY_EFFORT", "medium").strip()
+"""Reasoning effort for the one turn after a truncated turn that gave no command.
+
+Truncation is sticky. Across 1,902 turns of healthy runs, 13% were cut off
+mid-thought, but 47% of the turns right after a cut-off were cut off too. Each
+costs ~95 s and a strike toward MAX_TURNS_WITHOUT_ACTION, and four in a row
+ends the task before a command has run. Dropping effort for a single turn asks
+for a command instead of another full think; the next turn goes back to the
+default. Running at medium throughout cost score (0.76 vs 0.86), which is why
+this is one turn only. "off" disables it."""
+
 
 class BaselineAgent(BaseAgent):
     """A minimal ReAct agent that solves tasks by issuing bash commands.
@@ -148,13 +159,21 @@ class BaselineAgent(BaseAgent):
         finished = False
         turns_without_action = 0
         stop_reason = None
+        recover_next = False
+        recovery_turns = 0
+        recovery_actions = 0
         stopped_by_guard = None
 
         for _ in range(MAX_TURNS):
             turns += 1
 
-            # 1. Ask the LLM what to do next.
-            text, usage = await llm.chat(messages)
+            # 1. Ask the LLM what to do next. After a truncated turn with no
+            # command, ask with lower effort for this one turn (see
+            # RECOVERY_EFFORT).
+            effort = None
+            if recover_next and RECOVERY_EFFORT not in ("", "off", "none"):
+                effort = RECOVERY_EFFORT
+            text, usage = await llm.chat(messages, reasoning_effort=effort)
             n_input += usage.get("prompt_tokens", 0)
             n_output += usage.get("completion_tokens", 0)
 
@@ -166,6 +185,8 @@ class BaselineAgent(BaseAgent):
                 "turns": turns,
                 "finished": finished,
                 "stopped_by_guard": stopped_by_guard,
+                "recovery_turns": recovery_turns,
+                "recovery_actions": recovery_actions,
                 "messages": messages,
             }
 
@@ -173,6 +194,14 @@ class BaselineAgent(BaseAgent):
 
             # 2. Parse the response into an action (see tools.py).
             action = parse_action(text)
+
+            if effort:
+                recovery_turns += 1
+                if action.kind != "none":
+                    recovery_actions += 1
+                context.metadata["recovery_turns"] = recovery_turns
+                context.metadata["recovery_actions"] = recovery_actions
+            recover_next = llm.last_truncated and action.kind == "none"
 
             if action.kind == "done":
                 finished = True

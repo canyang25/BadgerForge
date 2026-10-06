@@ -138,13 +138,17 @@ class LLMClient:
         # of the turn. Set LLM_REASONING_EFFORT to trade thinking for
         # instructions actually being followed — measure before changing it.
         self.reasoning_effort = os.environ.get("LLM_REASONING_EFFORT") or None
+        self.last_truncated = False
+        """Whether the most recent reply hit max_tokens before finishing."""
         self.timeout = float(os.environ.get("LLM_TIMEOUT_SEC", "300"))
         self.max_retries = int(os.environ.get("LLM_MAX_RETRIES", "5"))
         self._client = AsyncOpenAI(
             base_url=base_url, api_key=api_key, timeout=self.timeout, max_retries=0
         )
 
-    async def chat(self, messages: list[dict]) -> tuple[str, dict]:
+    async def chat(
+        self, messages: list[dict], reasoning_effort: str | None = None
+    ) -> tuple[str, dict]:
         """Send the conversation history to the LLM and get a response.
 
         Parameters
@@ -158,6 +162,8 @@ class LLMClient:
                     {"role": "assistant", "content": "```bash\\nls /app\\n```"},
                     {"role": "user", "content": "Command output:\\n..."},
                 ]
+        reasoning_effort : str or None
+            Overrides ``LLM_REASONING_EFFORT`` for this one request.
 
         Returns
         -------
@@ -168,10 +174,11 @@ class LLMClient:
               and ``"completion_tokens"`` (both int). Empty dict if the
               server doesn't report usage.
         """
-        response = await self._request_with_retries(messages)
+        response = await self._request_with_retries(messages, reasoning_effort)
         message = response.choices[0].message
         text = message.content or ""
         truncated = response.choices[0].finish_reason == "length"
+        self.last_truncated = truncated
         if not text:
             # Reasoning models stream thinking into `reasoning_content` and
             # only fill `content` once the thinking closes. When generation
@@ -195,7 +202,9 @@ class LLMClient:
             }
         return text, usage
 
-    async def _request_with_retries(self, messages: list[dict]):
+    async def _request_with_retries(
+        self, messages: list[dict], reasoning_effort: str | None = None
+    ):
         """Send one request, retrying transient failures with exponential backoff.
 
         Retries timeouts, connection errors, rate limits and 5xx — the failures
@@ -212,7 +221,7 @@ class LLMClient:
                     messages=messages,
                     temperature=self.temperature,
                     max_tokens=self.max_tokens,
-                    **self.extra_params(),
+                    **self.extra_params(reasoning_effort),
                 )
             except RETRYABLE_ERRORS as exc:
                 last_error = exc
@@ -222,12 +231,14 @@ class LLMClient:
                 delay = min(delay * 2, RETRY_MAX_DELAY_SEC)
         raise last_error
 
-    def extra_params(self) -> dict:
+    def extra_params(self, reasoning_effort: str | None = None) -> dict:
         """Optional request fields, omitted entirely when unset.
 
         Sending `reasoning_effort=None` is not the same as leaving it out —
         some servers reject the explicit null — so build the dict instead.
+        A per-request `reasoning_effort` wins over the configured default.
         """
-        if self.reasoning_effort:
-            return {"reasoning_effort": self.reasoning_effort}
+        effort = reasoning_effort or self.reasoning_effort
+        if effort:
+            return {"reasoning_effort": effort}
         return {}
