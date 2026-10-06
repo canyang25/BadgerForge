@@ -47,8 +47,10 @@ compared against the current best.
 | 4 | Parse model output into Pydantic models, retry on bad format | Fewer wasted turns on malformed replies? | |
 | 5 | ~~Why `chess-best-move` never passes~~ | Not by itself: it's a text-only model trying to read an image, without surveying the environment or installing tools. Root causes are general → #6 | ruoshi ✅ |
 | 6 | ~~System prompt: survey environment, prefer tools, no raw data~~ | No measurable gain (0.81 vs 0.86, within noise); the model mostly ignored the rules. Not merged | ruoshi ✗ |
-| 7 | Environment probe run by the agent code before turn 1, result in the first message | Does enforcing the survey in code do what the prompt couldn't? | |
+| 7 | ~~Environment probe run by the agent code before turn 1~~ | No evidence it helps (0.71 vs 0.86, partly a degraded gateway); chess-best-move saw the font and still ignored it. Not merged | ruoshi ✗ |
 | 8 | Summarise binary- or matrix-like command output in code | Fewer tokens wasted on dumps the model can't read? | |
+| 9 | `scripts/score.py` reports seconds per turn and flags trials above ~40 s | Can we tell a slow-gateway run from a bad change without reading timestamps by hand? | |
+| 10 | After a truncated turn, ask for one command now instead of only counting strikes; or raise `LLM_MAX_TOKENS` | Stop losing hard tasks to four truncated turns before any command runs? | |
 
 ## Phase 3 — LangGraph
 

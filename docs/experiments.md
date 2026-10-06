@@ -3,6 +3,73 @@
 Newest first. One entry per run we want to remember: what changed, what the
 numbers were, what we learned. Numbers come from `scripts/score.py`.
 
+## 2026-10-05 — Environment probe in code (plan Phase 2 #7) ✗
+
+- Code: branch `ruoshi/feat-env-probe` (`a62e6b6`, not merged). Before turn 1
+  the agent runs a fixed shell probe — working directory, non-standard
+  top-level directories, package managers, network reachability — and appends
+  the ~400-character result to the task instruction. Nothing task-specific; a
+  unit test fails if the probe ever names a task.
+- Results: `eval/results/env-probe.csv`. Three trials lost to
+  `APIConnectionError` (one each of chess-best-move, configure-git-webserver,
+  fix-code-vulnerability) were dropped and re-run with the same code.
+
+| | Current | With probe |
+|---|---|---|
+| TB score | **0.8571** | 0.7143 |
+| Total tokens | 1,442,339 | **1,309,838** (−9%) |
+| Leaderboard score | **0.8427** | 0.7012 |
+
+**Not merging.**
+
+It works mechanically: the survey reached the model in every trial. But the
+case it was built for didn't move. chess-best-move saw `/fonts: noto.ttf` in
+its first message and still never used it (0/3; one trial installed a chess
+engine and still couldn't read the board). Having the information isn't
+enough — connecting "a font file" to "this is what drew the board" is a
+reasoning step the model doesn't make.
+
+Where the three lost trials went:
+
+| Trial | Cause |
+|---|---|
+| regex-log, timed out at 11 turns | Gateway degraded: 612 s per turn, so 15 minutes bought 11 turns. Not the agent |
+| polyglot-c-py, stopped at 4 turns | Four consecutive turns truncated mid-thought → no-action stop |
+| regex-log, stopped at 4 turns | Same |
+
+That early stop happened 0 times in the 84 trials of the other four runs and
+twice here, which looks suspicious. But first-turn behaviour didn't change
+(turn 1 truncated in 6/21 trials here and 6/21 in the control; first command
+exploratory in 15/21 vs 13/21), so there's no mechanism tying it to the
+probe, and with five runs to compare, one of them showing two by chance is
+roughly a 1-in-5 event.
+
+So: no evidence it helps, can't rule out that it hurts, and the case that
+motivated it failed. A re-run on a healthy gateway wouldn't change the
+decision, so we didn't spend one.
+
+### Side findings
+
+**A degraded gateway silently spoils a run.**
+
+| Run | Seconds per turn, median | Mean |
+|---|---|---|
+| Control | 15 | 19 |
+| Other runs | 10–13 | 11–18 |
+| This run | 17 | **85** |
+
+Between 16:39 and 16:51 UTC turns took about ten minutes. The retry policy
+from #5 (300 s timeout, 5 attempts) saves a trial when the connection drops,
+but when the gateway is merely slow it spends the 15-minute task budget
+waiting. Nothing in `scripts/score.py` shows this; we only found it by
+looking at timestamps. → Phase 2 #9.
+
+**The four-strike no-action stop can kill a task before it starts.** It was
+added in #8 to stop a model that emitted the same truncated thought nine
+times. On a task that needs hard thinking from turn 1, four truncated turns in
+a row ends the task before a single command has run — both early stops above
+passed 3/3 in the control. → Phase 2 #10.
+
 ## 2026-10-05 — System prompt: environment, tools, raw data (plan Phase 2 #6) ✗
 
 - Code: branch `ruoshi/feat-prompt-environment` (`f1f89f4`, not merged). Four
