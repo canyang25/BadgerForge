@@ -3,6 +3,7 @@
 
     ./scripts/score.py jobs/2026-09-23__17-35-20 [more dirs...]
     ./scripts/score.py jobs/* --csv eval/results/baseline.csv
+    ./scripts/score.py jobs/run jobs/run-fill --drop-infra-errors
 """
 
 import argparse
@@ -19,6 +20,12 @@ def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("job_dirs", nargs="+", type=Path)
     parser.add_argument("--csv", type=Path, help="also append the per-task rows here")
+    parser.add_argument(
+        "--drop-infra-errors",
+        action="store_true",
+        help="leave out trials that failed on the gateway connection "
+        "(dev-slice comparisons only; official numbers count them as 0)",
+    )
     args = parser.parse_args()
 
     trials = [t for d in args.job_dirs for t in load_trials(d)]
@@ -26,7 +33,7 @@ def main() -> int:
         print(f"No result.json found under: {', '.join(map(str, args.job_dirs))}")
         return 1
 
-    summary = summarize(trials)
+    summary = summarize(trials, drop_infra=args.drop_infra_errors)
     print(format_table(summary))
 
     if args.csv:
