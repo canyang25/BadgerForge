@@ -1,100 +1,119 @@
 # Running on Windows (WSL2)
 
-Worth doing: the task images are x86, so a Windows PC runs them natively.
-Apple Silicon emulates them, which is slower and makes the qemu tasks fail
-outright — full 89-task scoring runs should happen here, not on a Mac.
+Full 89-task runs belong here, not on a Mac: the task images are x86, so
+Windows runs them natively, while Apple Silicon emulates them (slower) and
+can't run the two qemu tasks at all. A full run takes **8–12 hours** — 17
+tasks allow 30+ minutes and one allows 200 — so plan it overnight.
 
-Everything below runs in the Ubuntu terminal, **not PowerShell**.
+Everything from step 4 on runs in the Ubuntu terminal, **not PowerShell**.
 
-## 1. WSL2 and Docker
+## 0. How much memory?
 
-In PowerShell as Administrator:
+Settings → System → About → Installed RAM. Eight tasks ask for 8 GB each, and
+WSL only gets what you give it.
 
-```powershell
-wsl --install
+| Installed RAM | `.wslconfig` memory | `N_CONCURRENT` |
+|---|---|---|
+| 32 GB | 24GB | 3 |
+| 16 GB | 12GB | 2 (expect 12+ hours) |
+
+## 1. WSL2
+
+PowerShell as Administrator: `wsl --install`, reboot, finish the Ubuntu setup.
+
+Create `C:\Users\<you>\.wslconfig`:
+
+```ini
+[wsl2]
+memory=24GB
+networkingMode=mirrored
 ```
 
-Reboot, finish the Ubuntu first-run setup, then install Docker Desktop for
-Windows and turn on WSL2 integration (Settings → Resources → WSL integration →
-enable your Ubuntu distro). Give Docker at least 30 GB of disk: the 89 task
-images are large.
+Then `wsl --shutdown` in PowerShell so it takes effect. `mirrored` matters:
+with WSL's default networking, GlobalProtect often leaves Ubuntu unable to
+reach campus hosts. (Needs Windows 11 22H2 or later.)
 
-Check it from Ubuntu:
+## 2. Docker Desktop
+
+Install it, then Settings → Resources → WSL integration → turn on Ubuntu.
+Give it ~100 GB of disk; the images for 89 tasks add up. From Ubuntu:
 
 ```bash
 docker run hello-world
 ```
 
-## 2. Keep the repo inside WSL
+## 3. 1Password
+
+1. Windows desktop app, signed in to `uw-madison.1password.com`.
+   Settings → Developer → **Integrate with 1Password CLI**.
+2. PowerShell: `winget install AgileBits.1Password.CLI`
+3. From Ubuntu (a new terminal, so PATH picks it up): `op.exe whoami`
+
+1Password documents no WSL integration. WSL can run Windows programs, so
+`scripts/env.sh` calls `op.exe`, and the key lives only in that shell's
+environment, never in a file.
+
+## 4. Repo, Python, tasks
+
+Inside WSL, **not** under `/mnt/c/...` — file access across that boundary is
+slow enough to distort every timing.
 
 ```bash
-cd ~ && git clone https://github.com/canyang25/BadgerForge.git
-```
-
-**Not** under `/mnt/c/...`. Docker file access across the Windows/Linux
-boundary is slow enough to distort every timing measurement you take.
-
-## 3. Python and the agent
-
-```bash
-curl -LsSf https://astral.sh/uv/install.sh | sh
-cd ~/BadgerForge
+curl -LsSf https://astral.sh/uv/install.sh | sh && source ~/.bashrc
+cd ~ && git clone https://github.com/canyang25/BadgerForge.git && cd BadgerForge
 uv venv --python 3.12 && source .venv/bin/activate
-uv pip install -e ".[dev]"
-pytest -q
-```
-
-## 4. Tasks
-
-```bash
+uv pip install -e ".[dev]" && pytest -q
 git clone https://github.com/harbor-framework/terminal-bench-2-1.git ~/terminal-bench-2-1
+cp .env.op .env.op.local     # then set LLM_API_KEY=op://Employee/<your item>/credential
 ```
 
-Point `TB_TASKS` at it, since the run script defaults to the macOS path:
+## 5. Check each piece
+
+GlobalProtect connected on Windows first.
 
 ```bash
-export TB_TASKS=~/terminal-bench-2-1/tasks
+curl -s -o /dev/null -w "%{http_code}\n" https://llm-gw01.doit.wisc.edu/v1/models   # 401
+source scripts/env.sh && echo "key length ${#LLM_API_KEY}"                          # never echo the key
+TB_TASKS=~/terminal-bench-2-1/tasks ./scripts/run_task.sh regex-log                 # 5-10 min
 ```
 
-## 5. VPN and the key
+## 6. Before the long run
 
-GlobalProtect runs on Windows; WSL inherits the tunnel, nothing to install in
-Ubuntu. Check the gateway from Ubuntu — 401 means reachable:
+- Plugged in. In an Administrator PowerShell:
+  ```powershell
+  powercfg /change standby-timeout-ac 0
+  powercfg /change hibernate-timeout-ac 0
+  powercfg /setacvalueindex SCHEME_CURRENT SUB_BUTTONS LIDACTION 0
+  powercfg /setactive SCHEME_CURRENT
+  ```
+  (no sleep, no hibernate, closing the lid does nothing)
+- Pause Windows Update so it doesn't restart overnight.
+- GlobalProtect connected.
+
+## 7. Full run
+
+Inside `tmux`, so closing the terminal doesn't kill the run:
 
 ```bash
-curl -s -o /dev/null -w "%{http_code}\n" https://llm-gw01.doit.wisc.edu/v1/models
+tmux new -s full
+cd ~/BadgerForge && source .venv/bin/activate
+N_CONCURRENT=3 ./scripts/run_full.sh
 ```
 
-1Password CLI is the fiddly part. Install the Windows desktop app, then in
-Settings → Developer enable **both** "Integrate with 1Password CLI" and the
-WSL option. Install `op` inside Ubuntu and check it sees your account:
+Detach with `Ctrl-b d`, reattach with `tmux attach -t full`. If it stops —
+VPN drop, reboot — resume, which skips finished trials and re-runs the ones
+that failed on the gateway connection:
 
 ```bash
-op whoami
+./scripts/run_full.sh resume jobs/full-<timestamp>
 ```
 
-Then copy the template and fill in your own item:
+## 8. Afterwards
 
 ```bash
-cp .env.op .env.op.local     # LLM_API_KEY=op://Employee/<your item>/credential
+python scripts/score.py jobs/full-<timestamp>
+./scripts/export_trials.py jobs/full-<timestamp> --out eval/results/full-<date>-trials.csv
 ```
 
-## 6. Run
-
-```bash
-./scripts/run_task.sh regex-log
-```
-
-A full scoring run — all 89 tasks, one attempt each, as the rules require —
-takes several hours. Don't let the machine sleep:
-
-```bash
-op run --env-file=.env.op.local -- \
-  harbor run -p "$TB_TASKS" --agent agent.agent:BaselineAgent \
-  --n-attempts 1 -n 3 -o jobs/full
-python scripts/score.py jobs/full/<job-id>
-```
-
-Windows sleeps on its own schedule; set power mode to never sleep first
-(`powercfg /change standby-timeout-ac 0` in an admin PowerShell) — the WSL
-equivalent of the `caffeinate -i` we use on macOS.
+Commit the CSV on a branch and open a PR. It's what the next dev slice is
+picked from, and it lets anyone analyse the run without the Windows machine.

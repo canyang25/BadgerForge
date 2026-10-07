@@ -41,16 +41,17 @@ is gitignored:
 cp .env.op .env.op.local   # then put your item name in it
 ```
 
-Everything runs through `op run`, which injects the key for that one command
-only.
+The scripts load it with `scripts/env.sh`, which asks the 1Password CLI for
+the key and keeps it in that shell's environment only. On Windows/WSL it uses
+`op.exe`; see [docs/setup-windows.md](docs/setup-windows.md).
 
 ```bash
-op run --env-file=.env.op.local -- ./scripts/run_task.sh regex-log
+./scripts/run_task.sh regex-log
 ```
 
 Gotchas we already hit:
-- A plain `.env` file overrides `op run` (the loader uses `override=True`),
-  so don't create one.
+- A plain `.env` file overrides what `env.sh` loads (the loader uses
+  `override=True`), so don't create one.
 - First request after an idle period waits ~90s for GPU cold start.
 - `LLM_MAX_TOKENS` below ~8192 makes the reasoning model return empty
   responses and time out.

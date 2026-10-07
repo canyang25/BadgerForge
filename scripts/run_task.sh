@@ -3,16 +3,15 @@
 #
 #   ./scripts/run_task.sh regex-log
 #
-# Requires: Docker running, GlobalProtect VPN, 1Password CLI signed in,
-# and TB_TASKS pointing at a clone of harbor-framework/terminal-bench-2-1.
+# Requires: Docker running, GlobalProtect VPN, 1Password signed in, and
+# TB_TASKS pointing at a clone of harbor-framework/terminal-bench-2-1.
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
 TASK="${1:?usage: run_task.sh <task-name> [extra harbor flags]}"
 shift
 TB_TASKS="${TB_TASKS:-$HOME/Documents/terminal-bench-2-1/tasks}"
-
 [ -d "$TB_TASKS/$TASK" ] || { echo "No such task: $TB_TASKS/$TASK" >&2; exit 1; }
 
-op run --env-file=.env.op -- \
-  harbor run -p "$TB_TASKS/$TASK" --agent agent.agent:BaselineAgent "$@"
+source scripts/env.sh
+harbor run -p "$TB_TASKS/$TASK" --agent agent.agent:BaselineAgent "$@"
