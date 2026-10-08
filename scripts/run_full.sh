@@ -2,8 +2,9 @@
 # Run every Terminal-Bench 2.1 task once: our full score, and the sweep the
 # next dev slice is picked from. Expect 8-12 hours.
 #
-#   ./scripts/run_full.sh                  start a new job
-#   ./scripts/run_full.sh resume <job dir> continue an interrupted one
+#   ./scripts/run_full.sh                            start a new job
+#   ./scripts/run_full.sh resume <job dir>           continue an interrupted one
+#   ./scripts/run_full.sh subset <job dir> <task>... some tasks, N_TRIALS each (default 1)
 #
 # Resuming skips trials that finished, re-runs unfinished ones (a trial
 # directory with no result.json) and the ones that failed on the gateway
@@ -37,6 +38,23 @@ if [ "${1:-}" = "resume" ]; then
 fi
 
 [ -d "$TB_TASKS" ] || { echo "No task dir at $TB_TASKS (set TB_TASKS)" >&2; exit 1; }
+
+if [ "${1:-}" = "subset" ]; then
+  # A slice: the named tasks only, N_TRIALS attempts each, into the given job
+  # dir. Same agent, same dataset dir; harbor filters by -i.
+  JOB="${2:?usage: run_full.sh subset <job dir> <task>...}"
+  shift 2
+  [ $# -gt 0 ] || { echo "subset: name at least one task" >&2; exit 1; }
+  INCLUDE=()
+  for t in "$@"; do
+    [ -d "$TB_TASKS/$t" ] || { echo "No such task: $TB_TASKS/$t" >&2; exit 1; }
+    INCLUDE+=(-i "$t")
+  done
+  K="${N_TRIALS:-1}"
+  echo "Job: $JOB   tasks: $#   trials each: $K   concurrency: $N"
+  exec harbor run -p "$TB_TASKS" "${INCLUDE[@]}" --agent agent.agent:BaselineAgent -k "$K" -n "$N" -o "$JOB"
+fi
+
 JOB="jobs/full-$(date +%Y%m%d-%H%M)"
 echo "Job: $JOB   concurrency: $N"
 echo "If it stops, run:  ./scripts/run_full.sh resume $JOB"

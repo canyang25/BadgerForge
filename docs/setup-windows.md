@@ -149,6 +149,19 @@ GlobalProtect before resuming.
 powershell -ExecutionPolicy Bypass -File ...\scripts\run_full_windows.ps1 resume jobs/full-<timestamp>
 ```
 
+### A subset
+
+The same launcher runs a slice: a list of tasks, N trials each, into a job
+directory of your choosing (tmux session `subset`, log `jobs/<name>.log`):
+
+```powershell
+powershell -ExecutionPolicy Bypass -File ...\scripts\run_full_windows.ps1 subset -Tasks regex-log,extract-elf,sqlite-db-truncate -Trials 3 -Job jobs/slice-20261008
+```
+
+From Ubuntu, with `LLM_API_KEY` already in the environment, that is
+`N_TRIALS=3 ./scripts/run_full.sh subset jobs/slice-20261008 regex-log extract-elf sqlite-db-truncate`.
+Score it with `scripts/score.py jobs/slice-20261008/<harbor job id>` as below.
+
 ## 8. Afterwards
 
 harbor puts the trials in a timestamped directory under the job directory;
