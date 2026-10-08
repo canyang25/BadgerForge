@@ -25,6 +25,8 @@ param(
     [int]$Concurrent = 2
 )
 $ErrorActionPreference = "Stop"
+# `powershell -File ... -Tasks a,b,c` hands over one string; split it ourselves so both forms work.
+$Tasks = @($Tasks | ForEach-Object { $_ -split "," } | ForEach-Object { $_.Trim() } | Where-Object { $_ })
 if ($Mode -in @("resume", "task") -and -not $Arg) { throw "$Mode needs an argument: the job dir (jobs/full-<timestamp>) or the task name" }
 if ($Mode -eq "subset" -and $Tasks.Count -eq 0) { throw "subset needs -Tasks task1,task2,... (and optionally -Trials N -Job jobs/<name>)" }
 if ($Mode -eq "subset" -and -not $Job) { $Job = "jobs/subset-$(Get-Date -Format yyyyMMdd-HHmm)" }
@@ -46,7 +48,8 @@ if ($env:LLM_API_KEY) {
 
 $env:LLM_API_KEY = $key
 $env:WSLENV = "LLM_API_KEY"   # only this variable crosses into WSL
-$setup = "cd $Repo && source .venv/bin/activate && export N_CONCURRENT=$Concurrent"
+# mkdir: on a fresh clone jobs/ doesn't exist yet, and `tee` into it would fail before harbor creates it.
+$setup = "cd $Repo && source .venv/bin/activate && mkdir -p jobs && export N_CONCURRENT=$Concurrent"
 
 if ($Mode -eq "task") {
     wsl.exe -d $Distro -- bash -c "$setup && ./scripts/run_task.sh $Arg"
