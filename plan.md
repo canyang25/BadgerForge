@@ -1,7 +1,8 @@
 # Plan
 
-Leaderboard score = `TB score − 0.01 × (total tokens / 1M)`. Tokens cost
-points, so every result reports both. Numbers and what we learned from each
+Leaderboard score = `TB score − min(0.01, 0.01 × tokens per task / 100M)`.
+The penalty is capped below one solved task (1/89), so tokens only break ties:
+passing more tasks comes first. Every result still reports both. Numbers and what we learned from each
 run live in [docs/experiments.md](docs/experiments.md).
 
 ## How we test a change

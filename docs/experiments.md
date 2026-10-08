@@ -3,6 +3,19 @@
 Newest first. One entry per run we want to remember: what changed, what the
 numbers were, what we learned. Numbers come from `scripts/score.py`.
 
+## 2026-10-07 — Scoring rule changed
+
+The token penalty is now `min(0.01, 0.01 × tokens per task / 100M)`
+([Kaggle evaluation page](https://www.kaggle.com/competitions/OpenAgent-Coding/overview/evaluation)),
+replacing `0.01 × total tokens / 1M`. It is capped below one solved task, so
+it only breaks ties. `scripts/score.py` uses the new rule.
+
+Leaderboard rows in the entries below use the old rule. Under the new one our
+penalty is about 0.00002 (after the fix: 0.85714 → 0.85712; medium:
+0.76190 → 0.76189), so read them as TB score. The full-scale extrapolation in
+the reasoning-effort entry no longer applies; the decision to stay on the
+default is unchanged, since medium passes fewer tasks.
+
 ## 2026-10-06 — Recovery turn after truncation (plan Phase 2 #10) ✗
 
 - Code: branch `ruoshi/feat-truncation-recovery` (`a4229cb`, not merged).

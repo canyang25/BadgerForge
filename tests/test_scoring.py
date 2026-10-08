@@ -4,7 +4,7 @@ from pathlib import Path
 
 import pytest
 
-from eval.scoring import load_trials, summarize
+from eval.scoring import TOKEN_PENALTY_CAP, Trial, load_trials, summarize
 
 FIXTURE = Path(__file__).parent / "fixtures" / "job"
 
@@ -37,12 +37,19 @@ def test_tb_score_is_mean_over_tasks_not_trials(summary):
     assert summary.tb_score == pytest.approx(0.5)
 
 
-def test_leaderboard_score_subtracts_the_token_penalty(summary):
+def test_leaderboard_score_subtracts_the_per_task_token_penalty(summary):
     expected_tokens = 736_295.5 + 128_000
     assert summary.total_tokens == pytest.approx(expected_tokens)
+    assert summary.tokens_per_task == pytest.approx(expected_tokens / 2)
     assert summary.leaderboard_score == pytest.approx(
-        0.5 - 0.01 * expected_tokens / 1_000_000
+        0.5 - 0.01 * (expected_tokens / 2) / 100_000_000
     )
+
+
+def test_token_penalty_is_capped_below_one_solved_task():
+    huge = Trial(task="a", reward=1.0, input_tokens=5_000_000_000)
+    assert summarize([huge]).leaderboard_score == pytest.approx(1.0 - 0.01)
+    assert TOKEN_PENALTY_CAP < 1 / 89
 
 
 def test_empty_job_dir_is_not_an_error(tmp_path):

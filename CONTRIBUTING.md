@@ -29,7 +29,7 @@ Branches are short-lived. Delete after merge. If a branch is older than a week, 
 **Description.** Three things, a few lines each:
 - What changed and why
 - How you tested it (unit tests, and which tasks you ran)
-- For anything that changes agent behavior: score and total tokens before/after on the same task subset. Tokens cost us points, so a change that raises score and doubles tokens needs a word of justification.
+- For anything that changes agent behavior: score and total tokens before/after on the same task subset. Tokens only break ties on the leaderboard, but they cost time and most failures are timeouts, so a change that doubles tokens needs a word of justification.
 
 **Review.** Any teammate other than the author approves. Rotate so everyone learns every part of the code. Reviewers check logic and intent; don't hand-audit formatting (tooling does that). If you're asked to review, respond within a day.
 

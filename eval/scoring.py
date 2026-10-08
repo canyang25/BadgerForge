@@ -1,6 +1,12 @@
 """Turn a Harbor jobs directory into the three numbers the leaderboard wants.
 
-    leaderboard_score = tb_score - 0.01 * (total_tokens / 1_000_000)
+    tokens_per_task   = total_tokens / n_tasks
+    token_penalty     = min(0.01, 0.01 * tokens_per_task / 100_000_000)
+    leaderboard_score = tb_score - token_penalty
+
+The penalty is capped just under the value of one solved task (1/89), so
+tokens only break ties between agents that pass the same number of tasks.
+Rule as of 2026-10-07: kaggle.com/competitions/OpenAgent-Coding/overview/evaluation
 
 Harbor writes one directory per trial, `<task>__<trial-id>/result.json`, under
 `jobs/<job-id>/`. A task run several times has several trial directories; we
@@ -22,7 +28,8 @@ from pathlib import Path
 
 from pydantic import BaseModel, Field
 
-TOKEN_PENALTY_PER_MILLION = 0.01
+TOKEN_PENALTY_CAP = 0.01
+TOKENS_PER_TASK_AT_CAP = 100_000_000
 
 SLOW_TURN_SEC = 40.0
 SLOW_OUTPUT_TOKENS_PER_SEC = 30.0
@@ -132,6 +139,7 @@ class JobSummary(BaseModel):
     tasks: list[TaskSummary]
     tb_score: float
     total_tokens: float
+    tokens_per_task: float = 0.0
     leaderboard_score: float
     median_sec_per_turn: float | None = None
     slow: list[Trial] = Field(default_factory=list)
@@ -187,11 +195,15 @@ def summarize(trials: list[Trial], drop_infra: bool = False) -> JobSummary:
 
     tb_score = sum(t.reward for t in tasks) / len(tasks) if tasks else 0.0
     total_tokens = sum(t.tokens for t in tasks)
-    penalty = TOKEN_PENALTY_PER_MILLION * (total_tokens / 1_000_000)
+    # Divide by the tasks we ran, not 89, so a dev slice gets the same
+    # per-task number a full run would.
+    tokens_per_task = total_tokens / len(tasks) if tasks else 0.0
+    penalty = TOKEN_PENALTY_CAP * min(1.0, tokens_per_task / TOKENS_PER_TASK_AT_CAP)
     return JobSummary(
         tasks=tasks,
         tb_score=tb_score,
         total_tokens=total_tokens,
+        tokens_per_task=tokens_per_task,
         leaderboard_score=tb_score - penalty,
         median_sec_per_turn=_median(
             [t.seconds_per_turn for t in trials if t.seconds_per_turn is not None]
@@ -217,9 +229,10 @@ def format_table(summary: JobSummary) -> str:
         )
     lines += [
         "-" * width,
-        f"TB score:          {summary.tb_score:.4f}",
+        f"TB score:          {summary.tb_score:.5f}",
         f"Total tokens:      {summary.total_tokens:,.0f}",
-        f"Leaderboard score: {summary.leaderboard_score:.4f}",
+        f"Tokens per task:   {summary.tokens_per_task:,.0f}",
+        f"Leaderboard score: {summary.leaderboard_score:.5f}",
         "",
     ]
     lines += _health_lines(summary)
