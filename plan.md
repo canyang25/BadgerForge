@@ -43,10 +43,10 @@ Also landed: retries for gateway drops (#5), CI (#10), reasoning-effort switch
 Small, measurable changes before any rewrite. Each is one dev-slice run
 compared against the current best.
 
-**Next: items 11–13, one per run, against the new slice's 0.40.** The first
-full run scored 0.438 (39/89). A quarter of all tasks end with the agent
-giving up, mostly because the model thinks past the 8192-token output limit
-four turns in a row (experiments.md, 2026-10-08).
+**Next: #12 again, on top of #11.** #11 is the new current best on the slice
+(14/30). The remaining give-ups are all cut-off streaks; the first 16k run
+halved them, so it's worth repeating with #11 in place. Judge it by cut-off
+give-ups as well as passes: on 10 × 3 trials, ±2 passes between runs is noise.
 
 | # | Experiment | Question it answers | Owner |
 |---|---|---|---|
@@ -60,8 +60,8 @@ four turns in a row (experiments.md, 2026-10-08).
 | 8 | Summarise binary- or matrix-like command output in code | Fewer tokens wasted on dumps the model can't read? | |
 | 9 | ~~`scripts/score.py` reports gateway health~~ | Merged in #17: flags trials over 40 s/turn **and** under 30 tok/s, lists connection failures | ruoshi ✅ |
 | 10 | ~~Lower reasoning effort for one turn after a truncated, command-less turn~~ | Doesn't recover: got a command 65% of the time vs 61% without it. Not merged. Raising `LLM_MAX_TOKENS` untested | ruoshi ✗ |
-| 11 | Short command-less replies: stronger nudge, temperature 0.7 for one turn | Do the "Let's start by exploring…" replies stop? Today the wording changes but the model never acts, until the agent gives up. Code: `ruoshi/feat-act-nudge` | ruoshi |
-| 12 | `LLM_MAX_TOKENS=16384` | Do cut-off turns end with a command, and is the slower turn worth it? The gateway publishes no output limit | ruoshi |
+| 11 | ~~Short command-less replies: stronger nudge, temperature 0.7 for one turn~~ | Yes: no give-ups on short replies (3 of 7 at 16k), and the next reply has a command 82% of the time (65% before). Passes 14/30, within noise | ruoshi ✅ |
+| 12 | `LLM_MAX_TOKENS=16384` | First run (without #11): cut-off give-ups 4 vs 8 at 8k, turns ~8% slower, passes 16/30. Doesn't break thinking loops (feal, write-compressor). Rerun on top of #11 | ruoshi |
 | 13 | `LLM_REASONING_EFFORT=medium`, again | The old slice had almost no cut-off tasks; the new one does | ruoshi |
 
 ## Phase 3 — LangGraph
