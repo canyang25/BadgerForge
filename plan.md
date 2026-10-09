@@ -60,7 +60,7 @@ four turns in a row (experiments.md, 2026-10-08).
 | 8 | Summarise binary- or matrix-like command output in code | Fewer tokens wasted on dumps the model can't read? | |
 | 9 | ~~`scripts/score.py` reports gateway health~~ | Merged in #17: flags trials over 40 s/turn **and** under 30 tok/s, lists connection failures | ruoshi ✅ |
 | 10 | ~~Lower reasoning effort for one turn after a truncated, command-less turn~~ | Doesn't recover: got a command 65% of the time vs 61% without it. Not merged. Raising `LLM_MAX_TOKENS` untested | ruoshi ✗ |
-| 11 | Short command-less replies: stronger nudge, temperature 0.7 for one turn | Do the "Let's start by exploring…" replies stop? Today the wording changes but the model never acts, until the agent gives up. Code: the short-reply half of `ruoshi/feat-no-action-retries` (local) | ruoshi |
+| 11 | Short command-less replies: stronger nudge, temperature 0.7 for one turn | Do the "Let's start by exploring…" replies stop? Today the wording changes but the model never acts, until the agent gives up. Code: `ruoshi/feat-act-nudge` | ruoshi |
 | 12 | `LLM_MAX_TOKENS=16384` | Do cut-off turns end with a command, and is the slower turn worth it? The gateway publishes no output limit | ruoshi |
 | 13 | `LLM_REASONING_EFFORT=medium`, again | The old slice had almost no cut-off tasks; the new one does | ruoshi |
 
