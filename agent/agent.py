@@ -83,9 +83,12 @@ tokens. Four strikes and we stop: the remaining budget buys nothing."""
 COMMAND_TIMEOUT_SEC = int(os.environ.get("AGENT_COMMAND_TIMEOUT_SEC", "60"))
 NO_COMMAND_TEMPERATURE = float(os.environ.get("AGENT_NO_COMMAND_TEMPERATURE", "0.7"))
 """Temperature for the request after a reply that ended without a command
-and wasn't cut off. At the default 0.2 the model repeats the same one-line
-"Let's start by exploring…" reply word for word until the agent gives up:
-4 of 89 tasks in the 2026-10-07 full run, 3 of 30 trials on the 10-08 slice."""
+and wasn't cut off. Those replies announce a step ("Let's start by exploring
+the environment.") and never take it; the wording drifts, the decision not to
+act doesn't, until the agent gives up: 4 of 89 tasks in the 2026-10-07 full
+run, 3 of 30 trials on the 10-08 slice. At 0.2 the same context gives nearly
+the same replies (two portfolio-optimization trials produced the identical
+four), so the next sample is warmer as well as nudged."""
 
 
 class BaselineAgent(BaseAgent):

@@ -140,9 +140,9 @@ class LLMClient:
         self.reasoning_effort = os.environ.get("LLM_REASONING_EFFORT") or None
         self.timeout = float(os.environ.get("LLM_TIMEOUT_SEC", "300"))
         self.max_retries = int(os.environ.get("LLM_MAX_RETRIES", "5"))
+        # Whether the last reply hit max_tokens. The agent nudges a cut-off
+        # reply differently from one that ended without a command.
         self.last_truncated = False
-        """Whether the last reply hit max_tokens. The agent nudges a cut-off
-        reply differently from one that ended without a command."""
         self._client = AsyncOpenAI(
             base_url=base_url, api_key=api_key, timeout=self.timeout, max_retries=0
         )

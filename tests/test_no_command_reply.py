@@ -1,8 +1,9 @@
 """Replies that end without a command, driven through the real agent loop.
 
 In the 2026-10-07 full run four tasks quit within 3 seconds: the model
-answered "Let's start by exploring the environment." four times, word for
-word at temperature 0.2, and the agent gave up. A reply that was cut off
+announced a step four times ("Let's start by exploring the environment.",
+"Let me explore the environment first.", ...) without ever running one, and
+the agent gave up. A reply that was cut off
 mid-thought is a different failure and keeps the old nudge.
 """
 
