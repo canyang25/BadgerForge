@@ -3,6 +3,40 @@
 Newest first. One entry per run we want to remember: what changed, what the
 numbers were, what we learned. Numbers come from `scripts/score.py`.
 
+## 2026-10-09 — New slice: 16k output budget, and the act nudge (#11, #12)
+
+Both on the 10-task slice, 3 trials each, Windows box, concurrency 2.
+Results: `eval/results/slice-maxtok16k.csv`, `eval/results/slice-actnudge.csv`.
+
+| | Baseline (8k) | `LLM_MAX_TOKENS=16384` | Act nudge, 8k |
+|---|---|---|---|
+| Passes | 12/30 | 16/30 | 14/30 |
+| Give-ups | 12 | 7 | 8 |
+| …on short replies | 2 in the full-run trial (rest not classified) | 3 | **0** |
+| …on cut-off streaks | — | 4 | 8 |
+| Tokens per task | 311k | 311k | 397k |
+| Gateway median | 19–29 s/turn | 38 s/turn | 26 s/turn |
+
+**The act nudge does what it's for.** A reply that ends without a command and
+wasn't cut off now gets a nudge that asks for the command itself, and the next
+request runs at temperature 0.7. 22 such replies across the 30 trials, nearly
+all on turn 1; 18 were followed by a command (82%; 65% at 8k before, 43% in
+the 16k run). No trial gave up on short replies, and modernize-scientific-stack
+and portfolio-optimization went 6/6. Merged.
+
+**Passes didn't move beyond noise.** regex-log fell to 1/3 on two cut-off
+streaks, a path this change doesn't touch (cut-off turns keep the old nudge
+and temperature); it was 3/3 and 2/3 in the other runs. On 10 tasks × 3
+trials, ±2 passes is noise, so judge changes by the failure they target too.
+
+**16k halves cut-off give-ups but doesn't break thinking loops.** 4 cut-off
+give-ups at 16k against 8 at 8k in the act-nudge run; sqlite-db-truncate went
+3/3 (1/3 in both 8k runs). feal-linear-cryptanalysis still gave up in all
+three trials, after 4 × 16,384 tokens of thinking with no command. Turns were
+~8% slower where the budget was used, tokens per task unchanged. Correction to
+our 10-08 read: reshard-c4-data's 3/3 at 16k repeated at 8k in the act-nudge
+run, so that one wasn't the budget.
+
 ## 2026-10-08 — First full run, and a new dev slice
 
 - Code: `main` at `294e023` (agent unchanged since the truncation fix). x86
