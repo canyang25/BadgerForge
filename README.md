@@ -42,8 +42,10 @@ cp .env.op .env.op.local   # then put your item name in it
 ```
 
 The scripts load it with `scripts/env.sh`, which asks the 1Password CLI for
-the key and keeps it in that shell's environment only. On Windows/WSL it uses
-`op.exe`; see [docs/setup-windows.md](docs/setup-windows.md).
+the key and keeps it in that shell's environment only. On Windows the
+1Password app won't authorize `op.exe` from inside WSL, so runs start from
+`scripts\run_full_windows.ps1`, which reads the key on the Windows side and
+passes it in; see [docs/setup-windows.md](docs/setup-windows.md).
 
 ```bash
 ./scripts/run_task.sh regex-log
@@ -52,6 +54,10 @@ the key and keeps it in that shell's environment only. On Windows/WSL it uses
 Gotchas we already hit:
 - A plain `.env` file overrides what `env.sh` loads (the loader uses
   `override=True`), so don't create one.
+- harbor's own process grows with every finished trial — past 11 GB by task
+  56 of 89 — and gets OOM-killed on a 16 GB machine unless WSL has swap
+  (docs/setup-windows.md). `harbor jobs resume` continues; a trial directory
+  without a `result.json` is rerun, a finished one is kept unless you delete it.
 - First request after an idle period waits ~90s for GPU cold start.
 - `LLM_MAX_TOKENS` below ~8192 makes the reasoning model return empty
   responses and time out.
