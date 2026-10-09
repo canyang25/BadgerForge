@@ -22,7 +22,7 @@ wasn't cut off now gets a nudge that asks for the command itself, and the next
 request runs at temperature 0.7. 22 such replies across the 30 trials, nearly
 all on turn 1; 18 were followed by a command (82%; 65% at 8k before, 43% in
 the 16k run). No trial gave up on short replies, and modernize-scientific-stack
-and portfolio-optimization went 6/6. Merged.
+and portfolio-optimization went 6/6. Merging it.
 
 **Passes didn't move beyond noise.** regex-log fell to 1/3 on two cut-off
 streaks, a path this change doesn't touch (cut-off turns keep the old nudge
