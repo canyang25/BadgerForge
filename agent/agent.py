@@ -64,7 +64,12 @@ from harbor.models.agent.context import AgentContext
 
 from agent.llm import LLMClient
 from agent.loop_guard import LoopGuard
-from agent.prompts import NUDGE_MESSAGE, SYSTEM_PROMPT, observation_message
+from agent.prompts import (
+    ACT_NUDGE_MESSAGE,
+    NUDGE_MESSAGE,
+    SYSTEM_PROMPT,
+    observation_message,
+)
 from agent.tools import parse_action, parse_exit_code, run_shell
 
 MAX_TURNS = int(os.environ.get("AGENT_MAX_TURNS", "100"))
@@ -76,6 +81,14 @@ usable, turn after turn. In our baseline one task emitted the same truncated
 thought nine times in a row and then hit the task timeout, having spent 1M
 tokens. Four strikes and we stop: the remaining budget buys nothing."""
 COMMAND_TIMEOUT_SEC = int(os.environ.get("AGENT_COMMAND_TIMEOUT_SEC", "60"))
+NO_COMMAND_TEMPERATURE = float(os.environ.get("AGENT_NO_COMMAND_TEMPERATURE", "0.7"))
+"""Temperature for the request after a reply that ended without a command
+and wasn't cut off. Those replies announce a step ("Let's start by exploring
+the environment.") and never take it; the wording drifts, the decision not to
+act doesn't, until the agent gives up: 4 of 89 tasks in the 2026-10-07 full
+run, 3 of 30 trials on the 10-08 slice. At 0.2 the same context gives nearly
+the same replies (two portfolio-optimization trials produced the identical
+four), so the next sample is warmer as well as nudged."""
 
 
 class BaselineAgent(BaseAgent):
@@ -149,12 +162,17 @@ class BaselineAgent(BaseAgent):
         turns_without_action = 0
         stop_reason = None
         stopped_by_guard = None
+        no_command_replies = 0
+        commands_after_bump = 0
+        next_temperature = None
 
         for _ in range(MAX_TURNS):
             turns += 1
 
             # 1. Ask the LLM what to do next.
-            text, usage = await llm.chat(messages)
+            text, usage = await llm.chat(messages, temperature=next_temperature)
+            bumped = next_temperature is not None
+            next_temperature = None
             n_input += usage.get("prompt_tokens", 0)
             n_output += usage.get("completion_tokens", 0)
 
@@ -166,6 +184,8 @@ class BaselineAgent(BaseAgent):
                 "turns": turns,
                 "finished": finished,
                 "stopped_by_guard": stopped_by_guard,
+                "no_command_replies": no_command_replies,
+                "commands_after_bump": commands_after_bump,
                 "messages": messages,
             }
 
@@ -182,6 +202,9 @@ class BaselineAgent(BaseAgent):
             if action.kind == "none":
                 # The LLM didn't produce a bash block or TASK_COMPLETE.
                 turns_without_action += 1
+                if not llm.last_truncated:
+                    no_command_replies += 1
+                    context.metadata["no_command_replies"] = no_command_replies
                 if turns_without_action >= MAX_TURNS_WITHOUT_ACTION:
                     stop_reason = "no_action"
                     context.metadata["stop_reason"] = stop_reason
@@ -189,11 +212,21 @@ class BaselineAgent(BaseAgent):
                         "stopping after %d turns with no command", turns_without_action
                     )
                     break
-                # Nudge it back on-protocol.
-                messages.append({"role": "user", "content": NUDGE_MESSAGE})
+                if llm.last_truncated:
+                    # Out of budget mid-thought; the kept tail says so.
+                    messages.append({"role": "user", "content": NUDGE_MESSAGE})
+                else:
+                    # It finished a reply that announces a step instead of
+                    # taking it. Ask for the command itself, and sample the
+                    # next reply hotter so it can't repeat this one.
+                    next_temperature = NO_COMMAND_TEMPERATURE
+                    messages.append({"role": "user", "content": ACT_NUDGE_MESSAGE})
                 continue
 
             turns_without_action = 0
+            if bumped:
+                commands_after_bump += 1
+                context.metadata["commands_after_bump"] = commands_after_bump
 
             # 3. Ask the loop guard whether this command is worth running.
             verdict = guard.before(action.command)

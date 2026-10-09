@@ -2,18 +2,19 @@
 
 Leaderboard score = `TB score − min(0.01, 0.01 × tokens per task / 100M)`.
 The penalty is capped below one solved task (1/89), so tokens only break ties:
-passing more tasks comes first. Every result still reports both. Numbers and what we learned from each
-run live in [docs/experiments.md](docs/experiments.md).
+passing more tasks comes first. Every result still reports both. Numbers and
+what we learned from each run live in [docs/experiments.md](docs/experiments.md).
 
 ## How we test a change
 
-- **Dev slice:** 7 tasks from `terminal-bench/terminal-bench-2-1`:
-  `chess-best-move`, `configure-git-webserver`, `fix-code-vulnerability`,
-  `log-summary-date-ranges`, `polyglot-c-py`, `regex-log`, `sqlite-with-gcov`.
-  Left out: `build-cython-ext` (broken reference solution) and the two qemu
-  tasks (can't run on Apple Silicon). **Saturated as of 2026-10-06:** six
-  tasks always pass and chess-best-move never does, so it can no longer show
-  an improvement. Being replaced — see below.
+- **Dev slice (since 2026-10-08):** 10 tasks from `terminal-bench/terminal-bench-2-1`,
+  picked from the first full run so that each way we fail shows up and most
+  tasks can go either way: `compile-compcert`, `extract-elf`,
+  `feal-linear-cryptanalysis`, `largest-eigenval`, `modernize-scientific-stack`,
+  `portfolio-optimization`, `regex-log`, `reshard-c4-data`,
+  `sqlite-db-truncate`, `write-compressor`. **Baseline 0.40** (12 of 30
+  trials). Runs on the Windows box, about 2.5 h for 3 trials at concurrency 2.
+  The old 7-task slice saturated: six tasks always passed.
 - **3 trials per task, always.** One task returned pass, fail and timeout
   across three trials of the same code. A difference smaller than the
   per-task spread in `scripts/score.py` is noise.
@@ -42,24 +43,26 @@ Also landed: retries for gateway drops (#5), CI (#10), reasoning-effort switch
 Small, measurable changes before any rewrite. Each is one dev-slice run
 compared against the current best.
 
-**Next: rebuild the dev slice.** The current one can't measure improvements
-any more (experiments.md, 2026-10-06). Run all 89 tasks once on x86, which
-gives our first full score, then choose ~10 tasks with mixed results as the
-new slice. Re-run the current config on it as the new baseline before any
-further item below. Owner: ruoshi.
+**Next: #12 again, on top of #11.** #11 is the new current best on the slice
+(14/30). The remaining give-ups are all cut-off streaks; the first 16k run
+halved them, so it's worth repeating with #11 in place. Judge it by cut-off
+give-ups as well as passes: on 10 × 3 trials, ±2 passes between runs is noise.
 
 | # | Experiment | Question it answers | Owner |
 |---|---|---|---|
 | 1 | ~~`LLM_REASONING_EFFORT=medium`~~ | Costs score: 0.76 vs 0.86. Staying on default — see experiments.md | ruoshi ✅ |
 | 2 | ~~Remove `agent/loop_guard.py`~~ | Keep it: same score, 46% more tokens without it. The 0.86 was the truncation fix | ruoshi ✅ |
-| 3 | Turn cap well below 100 | **On hold:** a trial passed at turn 84 (2026-10-06), so the premise doesn't hold. Revisit on the new slice | |
+| 3 | Turn cap (now 100) | Reversed: in the full run 6 tasks hit 100 turns with time left, and compile-compcert passed at 99. Try raising it | |
 | 4 | Parse model output into Pydantic models, retry on bad format | Fewer wasted turns on malformed replies? | |
 | 5 | ~~Why `chess-best-move` never passes~~ | Not by itself: it's a text-only model trying to read an image, without surveying the environment or installing tools. Root causes are general → #6 | ruoshi ✅ |
 | 6 | ~~System prompt: survey environment, prefer tools, no raw data~~ | No measurable gain (0.81 vs 0.86, within noise); the model mostly ignored the rules. Not merged | ruoshi ✗ |
 | 7 | ~~Environment probe run by the agent code before turn 1~~ | No evidence it helps (0.71 vs 0.86, partly a degraded gateway); chess-best-move saw the font and still ignored it. Not merged | ruoshi ✗ |
 | 8 | Summarise binary- or matrix-like command output in code | Fewer tokens wasted on dumps the model can't read? | |
-| 9 | `scripts/score.py` reports gateway health | Implemented in #17: flags trials over 40 s/turn **and** under 30 tok/s, lists connection failures | ruoshi → #17 |
+| 9 | ~~`scripts/score.py` reports gateway health~~ | Merged in #17: flags trials over 40 s/turn **and** under 30 tok/s, lists connection failures | ruoshi ✅ |
 | 10 | ~~Lower reasoning effort for one turn after a truncated, command-less turn~~ | Doesn't recover: got a command 65% of the time vs 61% without it. Not merged. Raising `LLM_MAX_TOKENS` untested | ruoshi ✗ |
+| 11 | ~~Short command-less replies: stronger nudge, temperature 0.7 for one turn~~ | Yes: no give-ups on short replies (3 of 7 at 16k), and the next reply has a command 82% of the time (65% before). Passes 14/30, within noise | ruoshi ✅ |
+| 12 | `LLM_MAX_TOKENS=16384` | First run (without #11): cut-off give-ups 4 vs 8 at 8k, turns ~8% slower, passes 16/30. Doesn't break thinking loops (feal, write-compressor). Rerun on top of #11 | ruoshi |
+| 13 | `LLM_REASONING_EFFORT=medium`, again | The old slice had almost no cut-off tasks; the new one does | ruoshi |
 
 ## Phase 3 — LangGraph
 

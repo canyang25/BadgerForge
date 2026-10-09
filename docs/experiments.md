@@ -3,6 +3,98 @@
 Newest first. One entry per run we want to remember: what changed, what the
 numbers were, what we learned. Numbers come from `scripts/score.py`.
 
+## 2026-10-09 — New slice: 16k output budget, and the act nudge (#11, #12)
+
+Both on the 10-task slice, 3 trials each, Windows box, concurrency 2.
+Results: `eval/results/slice-maxtok16k.csv`, `eval/results/slice-actnudge.csv`.
+
+| | Baseline (8k) | `LLM_MAX_TOKENS=16384` | Act nudge, 8k |
+|---|---|---|---|
+| Passes | 12/30 | 16/30 | 14/30 |
+| Give-ups | 12 | 7 | 8 |
+| …on short replies | 2 in the full-run trial (rest not classified) | 3 | **0** |
+| …on cut-off streaks | — | 4 | 8 |
+| Tokens per task | 311k | 311k | 397k |
+| Gateway median | 19–29 s/turn | 38 s/turn | 26 s/turn |
+
+**The act nudge does what it's for.** A reply that ends without a command and
+wasn't cut off now gets a nudge that asks for the command itself, and the next
+request runs at temperature 0.7. 22 such replies across the 30 trials, nearly
+all on turn 1; 18 were followed by a command (82%; 65% at 8k before, 43% in
+the 16k run). No trial gave up on short replies, and modernize-scientific-stack
+and portfolio-optimization went 6/6. Merging it.
+
+**Passes didn't move beyond noise.** regex-log fell to 1/3 on two cut-off
+streaks, a path this change doesn't touch (cut-off turns keep the old nudge
+and temperature); it was 3/3 and 2/3 in the other runs. On 10 tasks × 3
+trials, ±2 passes is noise, so judge changes by the failure they target too.
+
+**16k halves cut-off give-ups but doesn't break thinking loops.** 4 cut-off
+give-ups at 16k against 8 at 8k in the act-nudge run; sqlite-db-truncate went
+3/3 (1/3 in both 8k runs). feal-linear-cryptanalysis still gave up in all
+three trials, after 4 × 16,384 tokens of thinking with no command. Turns were
+~8% slower where the budget was used, tokens per task unchanged. Correction to
+our 10-08 read: reshard-c4-data's 3/3 at 16k repeated at 8k in the act-nudge
+run, so that one wasn't the budget.
+
+## 2026-10-08 — First full run, and a new dev slice
+
+- Code: `main` at `294e023` (agent unchanged since the truncation fix). x86
+  Windows/WSL2 laptop, concurrency 2, one trial per task, 11 h.
+- Results: `eval/results/full-run-1.csv`, one row per trial
+  (`scripts/export_trials.py`). Gateway median 19 s/turn, one slow trial
+  (regex-chess).
+
+| | Full run |
+|---|---|
+| TB score | **0.43820** (39/89) |
+| Total tokens | 52,254,395 (587k per task) |
+| Leaderboard score | 0.43814 |
+
+Why the other 50 failed:
+
+| Cause | Tasks |
+|---|---|
+| Gave up: four command-less turns in a row (`no_action` stop) | 25 |
+| Agent timeout | 9 |
+| Hit the 100-turn cap with time left (the CSV says `wrong_answer`) | 6 |
+| Finished, tests failed | 7 |
+| Verifier timed out | 3 |
+
+**The 7-task slice overstated our progress.** 0.86 there, 0.44 here. Badger
+Agents measured the unmodified starter at 40/89, so at full scale our changes
+don't show yet.
+
+**Giving up is half of all failures, and it is mostly the thinking budget.**
+Of the last four replies before each give-up (100 replies), 74 were cut off
+at the 8192-token output limit and 26 were one-line "Let's start by
+exploring…" replies with no command. 17 tasks were cut-offs only, 4 short
+replies only, 4 mixed. The short replies come back in about a second, so the
+model isn't thinking at all. Their wording drifts from turn to turn but the
+model never acts, and the nudge doesn't change that. They are also random:
+two of the four tasks that quit in 3 s on 10-07 passed 2/2 on 10-08.
+
+**New dev slice.** Two more trials on 20 candidates
+(`eval/results/slice-candidates.csv`; gateway median 29 s/turn, slower than
+the night before), then 10 picked so that each failure mode is in and most
+tasks can go either way:
+
+| task | 3 trials | why it's in |
+|---|---|---|
+| extract-elf | wrong, pass, wrong | finishes; answer sometimes wrong |
+| largest-eigenval | timeout, pass, timeout | timeouts |
+| compile-compcert | wrong, wrong, pass | 100-turn cap |
+| reshard-c4-data | gave up, gave up, pass | cut-off thinking |
+| sqlite-db-truncate | gave up, pass, gave up | cut-off thinking |
+| feal-linear-cryptanalysis | gave up ×3 | cut-off thinking, quick to run |
+| write-compressor | gave up ×3 | cut-off thinking, quick to run |
+| modernize-scientific-stack | gave up, pass, pass | short replies |
+| portfolio-optimization | gave up, pass, pass | short replies |
+| regex-log | pass ×3 | guard: should keep passing |
+
+Baseline **0.40**, 311k tokens per task. The three baseline trials come from
+two nights with different gateway speeds, so treat ±1 trial as noise.
+
 ## 2026-10-07 — Scoring rule changed
 
 The token penalty is now `min(0.01, 0.01 × tokens per task / 100M)`
