@@ -36,9 +36,9 @@ Of the last four replies before each give-up (100 replies), 74 were cut off
 at the 8192-token output limit and 26 were one-line "Let's start by
 exploring…" replies with no command. 17 tasks were cut-offs only, 4 short
 replies only, 4 mixed. The short replies come back in about a second, so the
-model isn't thinking at all, and at temperature 0.2 it repeats them word for
-word, so the nudge can't help. They are also random: two of the four tasks
-that quit in 3 s on 10-07 passed 2/2 on 10-08.
+model isn't thinking at all. Their wording drifts from turn to turn but the
+model never acts, and the nudge doesn't change that. They are also random:
+two of the four tasks that quit in 3 s on 10-07 passed 2/2 on 10-08.
 
 **New dev slice.** Two more trials on 20 candidates
 (`eval/results/slice-candidates.csv`; gateway median 29 s/turn, slower than
