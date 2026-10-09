@@ -140,11 +140,16 @@ class LLMClient:
         self.reasoning_effort = os.environ.get("LLM_REASONING_EFFORT") or None
         self.timeout = float(os.environ.get("LLM_TIMEOUT_SEC", "300"))
         self.max_retries = int(os.environ.get("LLM_MAX_RETRIES", "5"))
+        self.last_truncated = False
+        """Whether the last reply hit max_tokens. The agent nudges a cut-off
+        reply differently from one that ended without a command."""
         self._client = AsyncOpenAI(
             base_url=base_url, api_key=api_key, timeout=self.timeout, max_retries=0
         )
 
-    async def chat(self, messages: list[dict]) -> tuple[str, dict]:
+    async def chat(
+        self, messages: list[dict], temperature: float | None = None
+    ) -> tuple[str, dict]:
         """Send the conversation history to the LLM and get a response.
 
         Parameters
@@ -159,6 +164,9 @@ class LLMClient:
                     {"role": "user", "content": "Command output:\\n..."},
                 ]
 
+        temperature : float or None
+            Overrides ``LLM_TEMPERATURE`` for this request only.
+
         Returns
         -------
         tuple[str, dict]
@@ -168,10 +176,11 @@ class LLMClient:
               and ``"completion_tokens"`` (both int). Empty dict if the
               server doesn't report usage.
         """
-        response = await self._request_with_retries(messages)
+        response = await self._request_with_retries(messages, temperature)
         message = response.choices[0].message
         text = message.content or ""
         truncated = response.choices[0].finish_reason == "length"
+        self.last_truncated = truncated
         if not text:
             # Reasoning models stream thinking into `reasoning_content` and
             # only fill `content` once the thinking closes. When generation
@@ -195,7 +204,9 @@ class LLMClient:
             }
         return text, usage
 
-    async def _request_with_retries(self, messages: list[dict]):
+    async def _request_with_retries(
+        self, messages: list[dict], temperature: float | None = None
+    ):
         """Send one request, retrying transient failures with exponential backoff.
 
         Retries timeouts, connection errors, rate limits and 5xx — the failures
@@ -210,7 +221,7 @@ class LLMClient:
                 return await self._client.chat.completions.create(
                     model=self.model,
                     messages=messages,
-                    temperature=self.temperature,
+                    temperature=self.temperature if temperature is None else temperature,
                     max_tokens=self.max_tokens,
                     **self.extra_params(),
                 )
