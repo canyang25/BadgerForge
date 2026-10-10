@@ -3,6 +3,37 @@
 Newest first. One entry per run we want to remember: what changed, what the
 numbers were, what we learned. Numbers come from `scripts/score.py`.
 
+## 2026-10-09 — 16k on top of the act nudge (#12 again)
+
+- Code: `ruoshi/feat-act-nudge` (`15b2523`) with `LLM_MAX_TOKENS=16384`.
+  Slice, 3 trials, Windows box, concurrency 2, 3 h 38 min.
+- Results: `eval/results/slice-act16k.csv`
+
+| | Act nudge, 8k | Act nudge, 16k |
+|---|---|---|
+| Passes | 14/30 | **19/30** |
+| Give-ups (all cut-off streaks) | 8 | 3 |
+| Timeouts | 2 | 6 |
+| Tokens per task | 397k | 302k |
+| Median s/turn | 26 | 46 |
+
+**16k is worth it.** Both 16k runs beat both 8k runs on the slice (16 and 19
+passes against 12 and 14), and cut-off give-ups fell to 3 from 8.
+feal-linear-cryptanalysis passed for the first time in any run (1/3). 16384
+is now the default.
+
+**The cost is time.** Turns took 46 s against 26 s, mostly on the
+heavy-thinking tasks (write-compressor 106 vs 46 s/turn, feal 79 vs 37).
+Timeouts rose to 6 from 2: all three largest-eigenval trials hit their 900 s
+limit after 12–22 turns. Gateway speed also varies by day, so not all of the
+slowdown is ours. A full run will show whether the trade holds on long tasks.
+
+**Half the command-less replies at 16k are empty answers.** 14 of 29 had no
+content, only reasoning, yet the finish reason wasn't `length`. The agent
+treats them like narration (act nudge, 0.7) and 9 of 12 were followed by a
+command, so that works, but llm.py labels them "cut off — you spent the whole
+output budget", which isn't true. Plan #14.
+
 ## 2026-10-09 — New slice: 16k output budget, and the act nudge (#11, #12)
 
 Both on the 10-task slice, 3 trials each, Windows box, concurrency 2.

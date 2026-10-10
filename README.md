@@ -53,8 +53,9 @@ Gotchas we already hit:
 - A plain `.env` file overrides what `env.sh` loads (the loader uses
   `override=True`), so don't create one.
 - First request after an idle period waits ~90s for GPU cold start.
-- `LLM_MAX_TOKENS` below ~8192 makes the reasoning model return empty
-  responses and time out.
+- `LLM_MAX_TOKENS` is 16384 since 2026-10-09; below ~8192 the reasoning model
+  returns empty responses and times out. An `.env.op.local` copied before then
+  still says 8192: change it.
 - Long runs need the machine awake and the VPN up: prefix with `caffeinate -i`.
   A dropped connection used to kill the whole task; the client now retries, but
   a sleeping laptop still stalls everything.
