@@ -43,10 +43,9 @@ Also landed: retries for gateway drops (#5), CI (#10), reasoning-effort switch
 Small, measurable changes before any rewrite. Each is one dev-slice run
 compared against the current best.
 
-**Next: #12 again, on top of #11.** #11 is the new current best on the slice
-(14/30). The remaining give-ups are all cut-off streaks; the first 16k run
-halved them, so it's worth repeating with #11 in place. Judge it by cut-off
-give-ups as well as passes: on 10 × 3 trials, ±2 passes between runs is noise.
+**Next: a full 89-task run with #11 and 16k.** On the slice they reached
+19/30 (0.63) against the 0.40 baseline. The full run (0.438 before) shows
+whether slower turns cost more on long tasks than the give-ups they save.
 
 | # | Experiment | Question it answers | Owner |
 |---|---|---|---|
@@ -61,8 +60,10 @@ give-ups as well as passes: on 10 × 3 trials, ±2 passes between runs is noise.
 | 9 | ~~`scripts/score.py` reports gateway health~~ | Merged in #17: flags trials over 40 s/turn **and** under 30 tok/s, lists connection failures | ruoshi ✅ |
 | 10 | ~~Lower reasoning effort for one turn after a truncated, command-less turn~~ | Doesn't recover: got a command 65% of the time vs 61% without it. Not merged. Raising `LLM_MAX_TOKENS` untested | ruoshi ✗ |
 | 11 | ~~Short command-less replies: stronger nudge, temperature 0.7 for one turn~~ | Yes: no give-ups on short replies (3 of 7 at 16k), and the next reply has a command 82% of the time (65% before). Passes 14/30, within noise | ruoshi ✅ |
-| 12 | `LLM_MAX_TOKENS=16384` | First run (without #11): cut-off give-ups 4 vs 8 at 8k, turns ~8% slower, passes 16/30. Doesn't break thinking loops (feal, write-compressor). Rerun on top of #11 | ruoshi |
+| 12 | ~~`LLM_MAX_TOKENS=16384`~~ | Yes, on top of #11: 19/30 vs 14/30, cut-off give-ups 3 vs 8. Costs time: 46 vs 26 s/turn, timeouts 6 vs 2. Now the default | ruoshi ✅ |
 | 13 | `LLM_REASONING_EFFORT=medium`, again | The old slice had almost no cut-off tasks; the new one does | ruoshi |
+| 14 | Empty answers: no content, finish reason not `length` | Half the command-less replies at 16k. The act nudge recovers 9 of 12, but llm.py labels them "cut off", which they aren't. Own handling? | |
+| 15 | Tell the model how much time is left | Timeouts rose to 6/30 at 16k; all three largest-eigenval trials hit 900 s after 12–22 turns. Does it finish sooner? | |
 
 ## Phase 3 — LangGraph
 

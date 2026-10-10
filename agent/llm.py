@@ -22,7 +22,8 @@ All settings come from environment variables (loaded from ``.env`` via
   library requires a non-empty string, so use any placeholder like ``"ollama"``.
 - ``LLM_TEMPERATURE`` — Sampling temperature (default: 0.2). Lower = more
   deterministic.
-- ``LLM_MAX_TOKENS`` — Max tokens per completion (default: 2048).
+- ``LLM_MAX_TOKENS`` — Max tokens per completion, thinking included
+  (default: 16384).
 
 Model name resolution
 =====================
@@ -127,7 +128,7 @@ class LLMClient:
         api_key = os.environ.get("LLM_API_KEY", "none")
         self.model = _resolve_model(model_name)
         self.temperature = float(os.environ.get("LLM_TEMPERATURE", "0.2"))
-        self.max_tokens = int(os.environ.get("LLM_MAX_TOKENS", "2048"))
+        self.max_tokens = int(os.environ.get("LLM_MAX_TOKENS", "16384"))
         # BadgerBrain wakes the GPU on the first request after an idle period,
         # which takes ~90s; the quickstart asks for a 300s floor. Retries cover
         # the rest: a dropped VPN or a 429 from a busy gateway killed 16 of 21
