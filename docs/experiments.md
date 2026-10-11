@@ -3,6 +3,39 @@
 Newest first. One entry per run we want to remember: what changed, what the
 numbers were, what we learned. Numbers come from `scripts/score.py`.
 
+## 2026-10-11 — Full run 2: act nudge + 16k
+
+- Code: `ruoshi/feat-max-tokens-16k` (`61a99aa`), i.e. #22's act nudge and
+  16k output tokens. Same laptop, concurrency 2, one trial per task. The VPN
+  was down 16:52–19:27; four trials that failed on the gateway were rerun on
+  resume.
+- Results: `eval/results/full-run-2.csv`. Gateway median 28 s/turn.
+
+| | Full run 1 (10-07) | Full run 2 |
+|---|---|---|
+| TB score | 0.43820 (39/89) | **0.53933** (48/89) |
+| Tokens per task | 587k | 580k |
+| Leaderboard score | 0.43814 | **0.53927** |
+| Gave up | 25 | 11 |
+| Timeout | 9 | 20 |
+| 100-turn cap | 6 | 3 |
+| Wrong answer | 7 | 5 |
+| Verifier timeout | 3 | 2 |
+
+**+9 tasks, from fewer give-ups.** 16 tasks flipped to pass: 10 had given up
+in run 1, 3 had hit the turn cap, 2 were wrong answers, 1 a verifier timeout.
+7 flipped to fail, 6 of them timeouts: cobol-modernization, db-wal-recovery,
+financial-document-processor, mailman, overfull-hbox, path-tracing. mailman
+timed out as the VPN dropped, so that one may not be the agent.
+
+**Timeouts are now the biggest failure, and the time goes to thinking.** 20
+timeouts, at roughly 30 s per turn and 2–9k output tokens per turn. The
+per-trial median rose to 27.7 s/turn from 18.7. The slice showed the same
+trade (6 timeouts at 16k against 2).
+
+**Empty answers are in 10 of the 11 give-ups.** Of the last four replies of
+each give-up: 21 cut off, 19 empty answers, 4 short. Plan #14.
+
 ## 2026-10-09 — 16k on top of the act nudge (#12 again)
 
 - Code: `ruoshi/feat-act-nudge` (`15b2523`) with `LLM_MAX_TOKENS=16384`.

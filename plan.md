@@ -43,9 +43,12 @@ Also landed: retries for gateway drops (#5), CI (#10), reasoning-effort switch
 Small, measurable changes before any rewrite. Each is one dev-slice run
 compared against the current best.
 
-**Next: a full 89-task run with #11 and 16k.** On the slice they reached
-19/30 (0.63) against the 0.40 baseline. The full run (0.438 before) shows
-whether slower turns cost more on long tasks than the give-ups they save.
+**Full runs: 0.438 (39/89, 10-07) → 0.539 (48/89, 10-11) with #11 and 16k.**
+
+**Next: #13, `LLM_REASONING_EFFORT=medium`, on top of #11 and 16k.**
+Timeouts are now the biggest failure (20 of 41 in full run 2) and the time
+goes to thinking. Shorter thoughts could cut both timeouts and the remaining
+cut-offs. Slice first, judged by passes, timeouts and give-ups.
 
 | # | Experiment | Question it answers | Owner |
 |---|---|---|---|
@@ -61,9 +64,9 @@ whether slower turns cost more on long tasks than the give-ups they save.
 | 10 | ~~Lower reasoning effort for one turn after a truncated, command-less turn~~ | Doesn't recover: got a command 65% of the time vs 61% without it. Not merged. Raising `LLM_MAX_TOKENS` untested | ruoshi ✗ |
 | 11 | ~~Short command-less replies: stronger nudge, temperature 0.7 for one turn~~ | Yes: no give-ups on short replies (3 of 7 at 16k), and the next reply has a command 82% of the time (65% before). Passes 14/30, within noise | ruoshi ✅ |
 | 12 | ~~`LLM_MAX_TOKENS=16384`~~ | Yes, on top of #11: 19/30 vs 14/30, cut-off give-ups 3 vs 8. Costs time: 46 vs 26 s/turn, timeouts 6 vs 2. Now the default | ruoshi ✅ |
-| 13 | `LLM_REASONING_EFFORT=medium`, again | The old slice had almost no cut-off tasks; the new one does | ruoshi |
-| 14 | Empty answers: no content, finish reason not `length` | Half the command-less replies at 16k. The act nudge recovers 9 of 12, but llm.py labels them "cut off", which they aren't. Own handling? | |
-| 15 | Tell the model how much time is left | Timeouts rose to 6/30 at 16k; all three largest-eigenval trials hit 900 s after 12–22 turns. Does it finish sooner? | |
+| 13 | `LLM_REASONING_EFFORT=medium`, again | Thinking is now what times tasks out, and it still causes cut-offs. Shorter thoughts, faster turns: does it cost correctness? | ruoshi |
+| 14 | Empty answers: no content, finish reason not `length` | In 10 of the 11 give-ups of full run 2. The act nudge recovers most, but llm.py labels them "cut off", which they aren't. Own handling? | |
+| 15 | Tell the model how much time is left | Timeouts rose to 20/89 in full run 2 (9 before), 6 of them on tasks run 1 passed. Does it finish sooner? | |
 
 ## Phase 3 — LangGraph
 
