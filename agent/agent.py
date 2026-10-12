@@ -68,6 +68,7 @@ from agent.prompts import (
     ACT_NUDGE_MESSAGE,
     NUDGE_MESSAGE,
     SYSTEM_PROMPT,
+    VERIFY_MESSAGE,
     observation_message,
 )
 from agent.tools import parse_action, parse_exit_code, run_shell
@@ -81,6 +82,27 @@ usable, turn after turn. In our baseline one task emitted the same truncated
 thought nine times in a row and then hit the task timeout, having spent 1M
 tokens. Four strikes and we stop: the remaining budget buys nothing."""
 COMMAND_TIMEOUT_SEC = int(os.environ.get("AGENT_COMMAND_TIMEOUT_SEC", "60"))
+VERIFY_BEFORE_DONE = os.environ.get("AGENT_VERIFY_BEFORE_DONE", "0") == "1"
+"""The first TASK_COMPLETE starts a check instead of ending the task: the
+model is asked to confirm every requirement with commands and say
+TASK_COMPLETE again. Off until measured (plan #16). At medium effort wrong
+answers tripled in the 2026-10-12 full run, and the system prompt's own
+"verify before finishing" step is easy to skip."""
+
+
+def parse_verify_effort(value: str) -> str | None:
+    """Reasoning effort for the turns of that check, from AGENT_VERIFY_EFFORT.
+
+    Unset or empty: None, the same as every other turn. "server": "", which
+    leaves it to the server (on BadgerBrain the highest, which got six of
+    those wrong answers right). Anything else is sent as is.
+    """
+    if not value:
+        return None
+    return "" if value == "server" else value
+
+
+VERIFY_EFFORT = parse_verify_effort(os.environ.get("AGENT_VERIFY_EFFORT", ""))
 NO_COMMAND_TEMPERATURE = float(os.environ.get("AGENT_NO_COMMAND_TEMPERATURE", "0.7"))
 """Temperature for the request after a reply that ended without a command
 and wasn't cut off. Those replies announce a step ("Let's start by exploring
@@ -163,6 +185,10 @@ class BaselineAgent(BaseAgent):
         stop_reason = None
         stopped_by_guard = None
         no_command_replies = 0
+        verifying = False
+        verify_started_turn = None
+        verify_turns = 0
+        verify_commands = 0
         commands_after_bump = 0
         next_temperature = None
 
@@ -170,7 +196,13 @@ class BaselineAgent(BaseAgent):
             turns += 1
 
             # 1. Ask the LLM what to do next.
-            text, usage = await llm.chat(messages, temperature=next_temperature)
+            text, usage = await llm.chat(
+                messages,
+                temperature=next_temperature,
+                reasoning_effort=VERIFY_EFFORT if verifying else None,
+            )
+            if verifying:
+                verify_turns += 1
             bumped = next_temperature is not None
             next_temperature = None
             n_input += usage.get("prompt_tokens", 0)
@@ -186,6 +218,9 @@ class BaselineAgent(BaseAgent):
                 "stopped_by_guard": stopped_by_guard,
                 "no_command_replies": no_command_replies,
                 "commands_after_bump": commands_after_bump,
+                "verify_started_turn": verify_started_turn,
+                "verify_turns": verify_turns,
+                "verify_commands": verify_commands,
                 "messages": messages,
             }
 
@@ -195,6 +230,13 @@ class BaselineAgent(BaseAgent):
             action = parse_action(text)
 
             if action.kind == "done":
+                if VERIFY_BEFORE_DONE and not verifying:
+                    # First "done": check against the task before ending.
+                    verifying = True
+                    verify_started_turn = turns
+                    context.metadata["verify_started_turn"] = turns
+                    messages.append({"role": "user", "content": VERIFY_MESSAGE})
+                    continue
                 finished = True
                 context.metadata["finished"] = True
                 break
@@ -227,6 +269,9 @@ class BaselineAgent(BaseAgent):
             if bumped:
                 commands_after_bump += 1
                 context.metadata["commands_after_bump"] = commands_after_bump
+            if verifying:
+                verify_commands += 1
+                context.metadata["verify_commands"] = verify_commands
 
             # 3. Ask the loop guard whether this command is worth running.
             verdict = guard.before(action.command)

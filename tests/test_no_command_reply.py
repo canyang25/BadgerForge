@@ -30,7 +30,7 @@ class ScriptedLLM:
         self.temperatures = []
         self.last_truncated = False
 
-    async def chat(self, messages, temperature=None):
+    async def chat(self, messages, temperature=None, reasoning_effort=None):
         self.temperatures.append(temperature)
         text, self.last_truncated = self.replies.pop(0)
         return text, {"prompt_tokens": 10, "completion_tokens": 5}

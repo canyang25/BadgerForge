@@ -149,7 +149,10 @@ class LLMClient:
         )
 
     async def chat(
-        self, messages: list[dict], temperature: float | None = None
+        self,
+        messages: list[dict],
+        temperature: float | None = None,
+        reasoning_effort: str | None = None,
     ) -> tuple[str, dict]:
         """Send the conversation history to the LLM and get a response.
 
@@ -167,6 +170,9 @@ class LLMClient:
 
         temperature : float or None
             Overrides ``LLM_TEMPERATURE`` for this request only.
+        reasoning_effort : str or None
+            Overrides ``LLM_REASONING_EFFORT`` for this request only. ``""``
+            leaves it to the server (on BadgerBrain, the highest setting).
 
         Returns
         -------
@@ -177,7 +183,9 @@ class LLMClient:
               and ``"completion_tokens"`` (both int). Empty dict if the
               server doesn't report usage.
         """
-        response = await self._request_with_retries(messages, temperature)
+        response = await self._request_with_retries(
+            messages, temperature, reasoning_effort
+        )
         message = response.choices[0].message
         text = message.content or ""
         truncated = response.choices[0].finish_reason == "length"
@@ -206,7 +214,10 @@ class LLMClient:
         return text, usage
 
     async def _request_with_retries(
-        self, messages: list[dict], temperature: float | None = None
+        self,
+        messages: list[dict],
+        temperature: float | None = None,
+        reasoning_effort: str | None = None,
     ):
         """Send one request, retrying transient failures with exponential backoff.
 
@@ -224,7 +235,7 @@ class LLMClient:
                     messages=messages,
                     temperature=self.temperature if temperature is None else temperature,
                     max_tokens=self.max_tokens,
-                    **self.extra_params(),
+                    **self.extra_params(reasoning_effort),
                 )
             except RETRYABLE_ERRORS as exc:
                 last_error = exc
@@ -234,12 +245,15 @@ class LLMClient:
                 delay = min(delay * 2, RETRY_MAX_DELAY_SEC)
         raise last_error
 
-    def extra_params(self) -> dict:
+    def extra_params(self, reasoning_effort: str | None = None) -> dict:
         """Optional request fields, omitted entirely when unset.
 
         Sending `reasoning_effort=None` is not the same as leaving it out —
         some servers reject the explicit null — so build the dict instead.
+        `reasoning_effort` overrides the configured level for one request;
+        `""` leaves it to the server.
         """
-        if self.reasoning_effort:
-            return {"reasoning_effort": self.reasoning_effort}
+        effort = self.reasoning_effort if reasoning_effort is None else reasoning_effort
+        if effort:
+            return {"reasoning_effort": effort}
         return {}
