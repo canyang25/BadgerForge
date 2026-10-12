@@ -133,12 +133,12 @@ class LLMClient:
         # which takes ~90s; the quickstart asks for a 300s floor. Retries cover
         # the rest: a dropped VPN or a 429 from a busy gateway killed 16 of 21
         # trials in our first baseline run, each one losing a whole task.
-        # Unset means the server's default, which on BadgerBrain is the
-        # highest setting: the model spends its whole completion budget
-        # thinking, the reply comes back truncated, and we get no command out
-        # of the turn. Set LLM_REASONING_EFFORT to trade thinking for
-        # instructions actually being followed — measure before changing it.
-        self.reasoning_effort = os.environ.get("LLM_REASONING_EFFORT") or None
+        # Medium since 2026-10-12: turns are 2-3x faster than at the server's
+        # default (the highest setting), which halved timeouts in a full run
+        # and scored 52/89 against 48/89, at the cost of more wrong answers
+        # (docs/experiments.md). Set LLM_REASONING_EFFORT= (empty) to leave it
+        # to the server, or to another level; measure before changing it.
+        self.reasoning_effort = os.environ.get("LLM_REASONING_EFFORT", "medium") or None
         self.timeout = float(os.environ.get("LLM_TIMEOUT_SEC", "300"))
         self.max_retries = int(os.environ.get("LLM_MAX_RETRIES", "5"))
         # Whether the last reply hit max_tokens. The agent nudges a cut-off

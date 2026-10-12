@@ -3,6 +3,43 @@
 Newest first. One entry per run we want to remember: what changed, what the
 numbers were, what we learned. Numbers come from `scripts/score.py`.
 
+## 2026-10-12 — Medium reasoning effort (#13): slice and full run 3
+
+- Code: `main` at `d90d2b9` (act nudge, 16k) with `LLM_REASONING_EFFORT=medium`.
+  Slice: 3 trials. Full run: one trial per task, 7 h 51 min, no resumes.
+- Results: `eval/results/slice-medium.csv`, `eval/results/full-run-3.csv`
+
+| | Slice, default (highest) | Slice, medium | Full run 2, default | Full run 3, medium |
+|---|---|---|---|---|
+| Passes | 19/30 | 18/30 | 48/89 | **52/89** |
+| Timeouts | 6 | 3 | 20 | 10 |
+| Wrong answers | 2 | 5 | 5 | 15 |
+| Gave up | 3 | 3 | 11 | 7 |
+| Median s/turn | 46 | 15 | 27.7 | 12.2 |
+| Output tokens per turn | 4,565 | 1,608 | 2,647 | 772 |
+| Tokens per task | 302k | 270k | 580k | 476k |
+
+Full run 3: TB 0.58427, leaderboard 0.58422. One slice trial failed because
+its environment never started.
+
+**Medium wins at full scale and is a wash on the slice.** It trades depth for
+speed. 7 of full run 2's 20 timeouts now pass (adaptive-rejection-sampler,
+cobol-modernization, db-wal-recovery, financial-document-processor,
+largest-eigenval, overfull-hbox, password-recovery). Wrong answers tripled,
+and six full-run-2 passes became wrong answers: build-cython-ext,
+configure-git-webserver, extract-elf, mteb-leaderboard, mteb-retrieve,
+sqlite-with-gcov. The slice has few time-bound tasks, so it couldn't show the
+gain.
+
+**How sure we are.** 14 tasks flipped to pass and 10 to fail, so +4 is within
+what a single run can swing. It's the default anyway: it isn't worse, turns
+are 2–3× faster, a full run takes 8 h instead of 11, and tokens per task fell
+18%. This reverses the 10-05 result on the old slice.
+
+**What's left.** Wrong answers (15) are now the largest failure: plan #16.
+Seven tasks still time out at 12 s/turn: #15. Give-ups are cut-offs and empty
+answers only, no short replies: #14.
+
 ## 2026-10-11 — Full run 2: act nudge + 16k
 
 - Code: `ruoshi/feat-max-tokens-16k` (`61a99aa`), i.e. #22's act nudge and
