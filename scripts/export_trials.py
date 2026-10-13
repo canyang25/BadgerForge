@@ -32,7 +32,7 @@ def _seconds(execution: dict) -> float | None:
 
 
 def outcome(reward, exception, stop_reason) -> str:
-    if exception in ("APIConnectionError", "APITimeoutError"):
+    if exception in ("APIConnectionError", "APITimeoutError", "InternalServerError"):
         return "gateway_failure"
     if reward == 1:
         return "pass"

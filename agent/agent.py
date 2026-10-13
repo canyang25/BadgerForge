@@ -81,6 +81,13 @@ usable, turn after turn. In our baseline one task emitted the same truncated
 thought nine times in a row and then hit the task timeout, having spent 1M
 tokens. Four strikes and we stop: the remaining budget buys nothing."""
 COMMAND_TIMEOUT_SEC = int(os.environ.get("AGENT_COMMAND_TIMEOUT_SEC", "60"))
+APT_WAIT_SEC = 120
+APT_WAIT_COMMAND = (
+    f"for _ in $(seq {APT_WAIT_SEC // 2}); do busy=0; "
+    "for c in /proc/[0-9]*/comm; do "
+    'case "$(cat "$c" 2>/dev/null)" in apt|apt-get|dpkg|unattended-upgr*) busy=1;; esac; '
+    'done; [ "$busy" = 0 ] && exit 0; sleep 2; done; exit 0'
+)
 NO_COMMAND_TEMPERATURE = float(os.environ.get("AGENT_NO_COMMAND_TEMPERATURE", "0.7"))
 """Temperature for the request after a reply that ended without a command
 and wasn't cut off. Those replies announce a step ("Let's start by exploring
@@ -108,16 +115,18 @@ class BaselineAgent(BaseAgent):
         return "0.1.0"
 
     async def setup(self, environment: BaseEnvironment) -> None:
-        """Called once before ``run()``. Install tools inside the container.
+        """Called once before ``run()``: wait for any apt/dpkg still running.
 
-        The baseline needs nothing, but if your agent relies on tools like
-        ripgrep, jq, or a custom script inside the container, install them
-        here via ``environment.exec(command="apt-get install -y ...")``.
-
-        Note: finale tasks may have **no network access** inside the
-        container, so anything you install here must not require downloads.
+        Some images start an apt process that holds the dpkg lock for a while.
+        In full run 3 that made the model's own installs fail in six trials.
+        Waiting here (up to APT_WAIT_SEC, then carrying on regardless) costs
+        nothing when the lock is free. Plain sh and /proc only: minimal images
+        have no pgrep or fuser.
         """
-        pass
+        try:
+            await environment.exec(command=APT_WAIT_COMMAND, timeout_sec=APT_WAIT_SEC + 30)
+        except Exception as exc:  # never fail a task over this
+            self.logger.info("apt wait skipped: %s", exc)
 
     async def run(
         self,

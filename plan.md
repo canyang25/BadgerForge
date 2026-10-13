@@ -46,9 +46,12 @@ compared against the current best.
 **Full runs: 0.438 (39/89, 10-07) → 0.539 (48/89, 10-11) with #11 and 16k →
 0.584 (52/89, 10-12) with medium reasoning effort.**
 
-**Next: #17, then #15.** #16 didn't help (experiments.md, 2026-10-12). Full
-run 3's remaining failures: 15 wrong answers, 10 timeouts, 7 give-ups. First
-check full run 3's transcripts for #17 before spending a run on it.
+**Next: #20 and #21 against a baseline, the same day.** 13 tasks from the
+36 that pass only sometimes (28 always pass, 25 never have): those full run 3
+lost to a give-up, timeout or wrong answer, less path-tracing (31 min a
+trial), plus feal-linear-cryptanalysis (gives up often) and git-leak-recovery
+(regression guard). Judge by cut-offs, give-ups, timeouts and s/turn as well
+as passes; on 3 trials, ±2 passes between arms is noise.
 
 | # | Experiment | Question it answers | Owner |
 |---|---|---|---|
@@ -66,11 +69,16 @@ check full run 3's transcripts for #17 before spending a run on it.
 | 12 | ~~`LLM_MAX_TOKENS=16384`~~ | Yes, on top of #11: 19/30 vs 14/30, cut-off give-ups 3 vs 8. Costs time: 46 vs 26 s/turn, timeouts 6 vs 2. Now the default | ruoshi ✅ |
 | 13 | ~~`LLM_REASONING_EFFORT=medium`, again~~ | Slice: a wash (18 vs 19/30). Full run: 52/89 vs 48/89, timeouts 20 → 10, wrong answers 5 → 15, turns 12 vs 28 s. Now the default | ruoshi ✅ |
 | 14 | Empty answers: no content, finish reason not `length` | Half the replies in the give-ups of full runs 2 and 3. The act nudge recovers most, but llm.py labels them "cut off", which they aren't. Own handling? | |
-| 15 | Tell the model how much time is left | 7 tasks still time out at medium, at 12 s/turn (path-tracing, gcode-to-text, …). Does it finish sooner? | |
+| 15 | Tell the model how much time is left | Later: Harbor doesn't give our agent the limit, and none of full run 3's 10 timeouts had a scoring state at the deadline (4 of 53 timeouts in all runs did) | |
 | 16 | ~~Check the work before TASK_COMPLETE, at medium or full effort~~ | No: 26 / 27 / 25 of 39 (none / medium / full effort) on 13 tasks. The check mostly re-confirms; when it acts it breaks working solutions as often as it fixes. Not merged (`ruoshi/feat-verify-before-done`) | ruoshi ✗ |
-| 17 | System prompt says there is no network; TB 2.1 tasks have it | Does that line stop the model from installing what a task needs? | |
-| 18 | Compact old turns on long tasks | Long tasks resend 30–40k input tokens per turn. Faster turns, fewer timeouts, without the lost passes Badger Agents saw? | |
-| 19 | Tooling: treat gateway 502s (`InternalServerError`) as gateway failures in `run_full.sh resume`, `score.py` and `export_trials.py` | Today a 502 outage counts as a finished trial and isn't rerun | |
+| 17 | ~~System prompt says there is no network; TB 2.1 tasks have it~~ | No: in full run 3 no reply says it's offline, 33 trials installed or downloaded (199 commands, 1 network error). Dropped | ruoshi ✗ |
+| 18 | ~~Compact old turns on long tasks~~ | Not doing: turn time is in output, not input (sqlite-db-truncate: 7.7k input, 62 s/turn; path-tracing-reverse: 62k, 31 s/turn), and tokens no longer score | ✗ |
+| 19 | ~~Tooling: gateway 502s (`InternalServerError`) count as gateway failures~~ | Done in `run_full.sh resume`, `score.py`, `export_trials.py` | ruoshi ✅ |
+| 20 | Sampling as on the Qwen3.8-27B model card: temperature 1.0, top_p 0.95, top_k 20 | We run 0.2, far from what the model was evaluated with. Fewer cut-off streaks? | ruoshi |
+| 21 | Looser give-up rule: 8 command-less turns, or never give up | Give-ups used 17–59% of the time limit; extra turns are nearly free under the capped token penalty. At most ~2 tasks: only 2 of the 7 have ever passed | ruoshi |
+| 22 | Long commands in the background and polled, command limit 60 → 120 s | 65 commands hit 60 s in full run 3 (24 Python/training, 16 servers or sleeps, 14 installs); a flat 180 s would let hung commands eat 2 more minutes each. Small: mostly never-passing tasks | |
+| 23 | ~~Wait for apt/dpkg left running by the image before starting~~ | Done: six full-run-3 installs failed on the dpkg lock (three of those trials passed anyway) | ruoshi ✅ |
+| 24 | Read mini-swe-agent's prompt and loop against ours | Badger Agents reached 51/89 with it; we're at 52. Find concrete differences before running anything | |
 
 ## Phase 3 — LangGraph
 

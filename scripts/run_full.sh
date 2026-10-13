@@ -34,7 +34,7 @@ if [ "${1:-}" = "resume" ]; then
   [ -n "$CFG" ] || { echo "No config.json under $DIR" >&2; exit 1; }
   echo "Resuming $(dirname "$CFG")"
   exec harbor jobs resume -p "$(dirname "$CFG")" \
-    -f APIConnectionError -f APITimeoutError -f AuthenticationError
+    -f APIConnectionError -f APITimeoutError -f InternalServerError -f AuthenticationError
 fi
 
 [ -d "$TB_TASKS" ] || { echo "No task dir at $TB_TASKS (set TB_TASKS)" >&2; exit 1; }

@@ -3,6 +3,27 @@
 Newest first. One entry per run we want to remember: what changed, what the
 numbers were, what we learned. Numbers come from `scripts/score.py`.
 
+## 2026-10-13 — Analysis only: where the remaining points are
+
+No new runs; full run 3's transcripts and every per-trial CSV (544 trials).
+
+- **#17, the "no network" line, costs nothing.** No reply in full run 3 says
+  it's offline. 33 of 89 trials installed or downloaded (199 commands); 1 hit
+  a network error, a dead SourceForge mirror. Dropped.
+- **Repetition isn't what loses tasks.** The loop guard's repeat warning fired
+  in 17 of the 52 passes (47 times) and 13 of the 37 failures (29 times).
+  Failures are cut-offs: 68 in the 7 give-ups and 76 in the 10 timeouts,
+  against 11 across all 52 passes.
+- **Where points can come from.** Of 89 tasks, 28 have always passed and 25
+  never have; the other 36 go either way. Of full run 3's 20 give-ups,
+  timeouts and turn-cap failures, only 5 have ever passed anywhere.
+- **The 60 s command limit** killed 65 commands (32 in trials that passed):
+  24 Python or training runs, 16 servers, sleeps or waits, 14 installs.
+- **The dpkg lock at start-up** failed installs in six trials; now waited
+  out in `setup()` (#23).
+- **Time per turn is output, not input**, so compacting history (#18) wouldn't
+  speed turns up.
+
 ## 2026-10-12 — Check before finishing (#16): no
 
 - Code: `ruoshi/feat-verify-before-done` (`287849d`), not merged. With

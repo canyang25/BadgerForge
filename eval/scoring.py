@@ -44,7 +44,7 @@ gateway trips both. Checked against all 135 trials we had on 2026-10-05: it
 catches every trial from the known degraded windows and nothing from the
 healthy post-#8 runs."""
 
-INFRA_ERRORS = frozenset({"APIConnectionError", "APITimeoutError"})
+INFRA_ERRORS = frozenset({"APIConnectionError", "APITimeoutError", "InternalServerError"})
 """Exceptions that mean the gateway failed, not the agent."""
 
 
