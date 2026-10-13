@@ -218,8 +218,10 @@ class BaselineAgent(BaseAgent):
                 else:
                     # It finished a reply that announces a step instead of
                     # taking it. Ask for the command itself, and sample the
-                    # next reply hotter so it can't repeat this one.
-                    next_temperature = NO_COMMAND_TEMPERATURE
+                    # next reply hotter so it can't repeat this one; never
+                    # cooler than the configured temperature.
+                    if NO_COMMAND_TEMPERATURE > llm.temperature:
+                        next_temperature = NO_COMMAND_TEMPERATURE
                     messages.append({"role": "user", "content": ACT_NUDGE_MESSAGE})
                 continue
 

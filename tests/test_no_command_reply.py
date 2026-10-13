@@ -25,10 +25,11 @@ DONE = "TASK_COMPLETE"
 class ScriptedLLM:
     """Plays back (text, truncated) replies and records each request's temperature."""
 
-    def __init__(self, replies):
+    def __init__(self, replies, temperature=0.2):
         self.replies = list(replies)
         self.temperatures = []
         self.last_truncated = False
+        self.temperature = temperature
 
     async def chat(self, messages, temperature=None):
         self.temperatures.append(temperature)
@@ -41,8 +42,8 @@ class FakeEnvironment:
         return SimpleNamespace(stdout="ok", stderr="", return_code=0)
 
 
-def run(monkeypatch, tmp_path, replies):
-    llm = ScriptedLLM(replies)
+def run(monkeypatch, tmp_path, replies, temperature=0.2):
+    llm = ScriptedLLM(replies, temperature)
     monkeypatch.setattr(agent_module, "LLMClient", lambda model_name=None: llm)
     context = AgentContext()
     agent = BaselineAgent(logs_dir=tmp_path)
@@ -105,3 +106,29 @@ def test_llm_client_sends_the_override_only_when_given(monkeypatch, temperature)
     asyncio.run(client.chat([], temperature=temperature))
     assert sent["temperature"] == (0.2 if temperature is None else temperature)
     assert client.last_truncated is False
+
+
+def test_the_bump_never_cools_a_hotter_base_temperature(monkeypatch, tmp_path):
+    llm, context = run(
+        monkeypatch, tmp_path, [(PREAMBLE, False), (COMMAND, False), (DONE, False)],
+        temperature=1.0,
+    )
+    assert llm.temperatures == [None, None, None]
+    assert ACT_NUDGE_MESSAGE in user_messages(context)
+
+
+def test_model_card_sampling_is_sent_only_when_set(monkeypatch):
+    monkeypatch.setenv("LLM_MODEL", "qwen3.8-27b")
+    monkeypatch.setenv("LLM_API_KEY", "test")
+    for name in ("LLM_TOP_P", "LLM_TOP_K", "LLM_MIN_P", "LLM_PRESENCE_PENALTY"):
+        monkeypatch.delenv(name, raising=False)
+    monkeypatch.setenv("LLM_REASONING_EFFORT", "")
+    assert agent_module.LLMClient().extra_params() == {}
+
+    monkeypatch.setenv("LLM_TOP_P", "0.95")
+    monkeypatch.setenv("LLM_TOP_K", "20")
+    monkeypatch.setenv("LLM_MIN_P", "0")
+    assert agent_module.LLMClient().extra_params() == {
+        "top_p": 0.95,
+        "extra_body": {"top_k": 20, "min_p": 0.0},
+    }

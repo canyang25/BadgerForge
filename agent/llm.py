@@ -100,6 +100,16 @@ def _resolve_model(model_name: str | None) -> str:
     return model
 
 
+def _optional_float(name: str) -> float | None:
+    value = os.environ.get(name)
+    return float(value) if value else None
+
+
+def _optional_int(name: str) -> int | None:
+    value = os.environ.get(name)
+    return int(value) if value else None
+
+
 def _tail(text: str, limit: int) -> str:
     """Keep the last `limit` characters, flagged so the model knows why."""
     if len(text) <= limit:
@@ -129,6 +139,14 @@ class LLMClient:
         self.model = _resolve_model(model_name)
         self.temperature = float(os.environ.get("LLM_TEMPERATURE", "0.2"))
         self.max_tokens = int(os.environ.get("LLM_MAX_TOKENS", "16384"))
+        # More sampling settings, sent only when set. The Qwen3.8-27B model
+        # card recommends temperature 1.0, top_p 0.95, top_k 20, min_p 0 for
+        # thinking mode (plan #20). top_k and min_p aren't OpenAI fields, so
+        # they travel in extra_body.
+        self.top_p = _optional_float("LLM_TOP_P")
+        self.top_k = _optional_int("LLM_TOP_K")
+        self.min_p = _optional_float("LLM_MIN_P")
+        self.presence_penalty = _optional_float("LLM_PRESENCE_PENALTY")
         # BadgerBrain wakes the GPU on the first request after an idle period,
         # which takes ~90s; the quickstart asks for a 300s floor. Retries cover
         # the rest: a dropped VPN or a 429 from a busy gateway killed 16 of 21
@@ -240,6 +258,18 @@ class LLMClient:
         Sending `reasoning_effort=None` is not the same as leaving it out —
         some servers reject the explicit null — so build the dict instead.
         """
+        params: dict = {}
         if self.reasoning_effort:
-            return {"reasoning_effort": self.reasoning_effort}
-        return {}
+            params["reasoning_effort"] = self.reasoning_effort
+        if self.top_p is not None:
+            params["top_p"] = self.top_p
+        if self.presence_penalty is not None:
+            params["presence_penalty"] = self.presence_penalty
+        extra_body = {
+            name: value
+            for name, value in (("top_k", self.top_k), ("min_p", self.min_p))
+            if value is not None
+        }
+        if extra_body:
+            params["extra_body"] = extra_body
+        return params
