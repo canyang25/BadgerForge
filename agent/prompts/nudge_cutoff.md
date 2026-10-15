@@ -1,0 +1,1 @@
+Your previous response reached the output token limit before it contained a complete action, so it was cut off. Respond more concisely and give exactly one bash code block. If you need to think more, do so briefly.

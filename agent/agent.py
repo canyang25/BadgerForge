@@ -66,6 +66,7 @@ from agent.llm import LLMClient
 from agent.loop_guard import LoopGuard
 from agent.prompts import (
     ACT_NUDGE_MESSAGE,
+    CUTOFF_MESSAGE,
     NUDGE_MESSAGE,
     SYSTEM_PROMPT,
     observation_message,
@@ -81,6 +82,16 @@ usable, turn after turn. In our baseline one task emitted the same truncated
 thought nine times in a row and then hit the task timeout, having spent 1M
 tokens. Four strikes and we stop: the remaining budget buys nothing."""
 COMMAND_TIMEOUT_SEC = int(os.environ.get("AGENT_COMMAND_TIMEOUT_SEC", "60"))
+CUTOFF_HANDLING = os.environ.get("AGENT_CUTOFF_HANDLING", "tail")
+"""What a reply cut off at max_tokens without a command leaves behind (plan #25).
+
+"tail": its last 2000 characters and the generic nudge (what we have run so far).
+"concise": the same tail, and a nudge to answer more concisely and think briefly.
+"drop": nothing; the reply leaves the history and only that nudge goes in.
+"concise" and "drop" follow mini-swe-agent. Cut-off streaks are most of what
+our give-ups and timeouts are made of (experiments.md, 2026-10-13)."""
+if CUTOFF_HANDLING not in ("tail", "concise", "drop"):
+    raise ValueError(f"AGENT_CUTOFF_HANDLING must be tail, concise or drop, not {CUTOFF_HANDLING!r}")
 APT_WAIT_SEC = 120
 APT_WAIT_COMMAND = (
     f"for _ in $(seq {APT_WAIT_SEC // 2}); do busy=0; "
@@ -172,6 +183,7 @@ class BaselineAgent(BaseAgent):
         stop_reason = None
         stopped_by_guard = None
         no_command_replies = 0
+        cut_off_turns = 0
         commands_after_bump = 0
         next_temperature = None
 
@@ -195,6 +207,7 @@ class BaselineAgent(BaseAgent):
                 "stopped_by_guard": stopped_by_guard,
                 "no_command_replies": no_command_replies,
                 "commands_after_bump": commands_after_bump,
+                "cut_off_turns": cut_off_turns,
                 "messages": messages,
             }
 
@@ -211,7 +224,11 @@ class BaselineAgent(BaseAgent):
             if action.kind == "none":
                 # The LLM didn't produce a bash block or TASK_COMPLETE.
                 turns_without_action += 1
-                if not llm.last_truncated:
+                if llm.last_truncated:
+                    # Counted here because "drop" keeps them out of the transcript.
+                    cut_off_turns += 1
+                    context.metadata["cut_off_turns"] = cut_off_turns
+                else:
                     no_command_replies += 1
                     context.metadata["no_command_replies"] = no_command_replies
                 if turns_without_action >= MAX_TURNS_WITHOUT_ACTION:
@@ -222,8 +239,11 @@ class BaselineAgent(BaseAgent):
                     )
                     break
                 if llm.last_truncated:
-                    # Out of budget mid-thought; the kept tail says so.
-                    messages.append({"role": "user", "content": NUDGE_MESSAGE})
+                    # Out of budget mid-thought.
+                    if CUTOFF_HANDLING == "drop":
+                        messages.pop()  # the cut-off reply we just appended
+                    nudge = NUDGE_MESSAGE if CUTOFF_HANDLING == "tail" else CUTOFF_MESSAGE
+                    messages.append({"role": "user", "content": nudge})
                 else:
                     # It finished a reply that announces a step instead of
                     # taking it. Ask for the command itself, and sample the

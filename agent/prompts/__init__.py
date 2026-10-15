@@ -11,6 +11,9 @@ _HERE = Path(__file__).parent
 SYSTEM_PROMPT = (_HERE / "system.md").read_text().strip()
 NUDGE_MESSAGE = (_HERE / "nudge.md").read_text().strip()
 ACT_NUDGE_MESSAGE = (_HERE / "nudge_act.md").read_text().strip()
+# Adapted from mini-swe-agent's format-error message for truncated replies
+# (MIT, github.com/SWE-agent/mini-swe-agent).
+CUTOFF_MESSAGE = (_HERE / "nudge_cutoff.md").read_text().strip()
 
 
 def observation_message(observation: str) -> str:
