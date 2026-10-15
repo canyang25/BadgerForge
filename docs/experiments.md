@@ -3,6 +3,54 @@
 Newest first. One entry per run we want to remember: what changed, what the
 numbers were, what we learned. Numbers come from `scripts/score.py`.
 
+## 2026-10-14 — Batch 1: model-card sampling (#20) and never giving up (#21): no
+
+- Code: `ruoshi/feat-sampling` (`6867ff0`), not merged: optional `top_p`,
+  `top_k`, `min_p`, `presence_penalty`. Otherwise main at the time (medium,
+  16k, 0.2).
+- 13 tasks, 3 trials, three arms the same day: break-filter-js-from-html,
+  feal-differential-cryptanalysis, feal-linear-cryptanalysis,
+  sqlite-db-truncate, build-pov-ray, mailman, build-cython-ext,
+  configure-git-webserver, extract-elf, mteb-leaderboard, mteb-retrieve,
+  sqlite-with-gcov, git-leak-recovery. Results: `eval/results/sampling-base.csv`,
+  `sampling-card.csv`, `giveup-never.csv`.
+
+| | Baseline | Card sampling (1.0 / 0.95 / 20, min_p 0) | Never give up |
+|---|---|---|---|
+| Passes | **18/39** | 17/39 | 13/39 |
+| Wrong answers | 13 | 13 | 15 |
+| Hit the 100-turn cap | 2 | 3 | 2 |
+| Give-ups | 5 | 4 | 0 |
+| Timeouts | 1 | 1 | 9 |
+| Verifier timeouts | 0 | 1 | 0 |
+| Cut-off turns | 21 | 29 | 46 |
+| Replies without a command | 55 | 18 | 123 |
+| Median s/turn | 7.9 | 9.9 | 8.0 |
+| Tokens per task | 489k | 581k | 518k |
+
+Wrong answers here exclude the turn cap; the CSVs' `wrong_answer` includes it
+(15 / 16 / 17). Each column sums to 39.
+
+**Card sampling doesn't carry over to our loop.** Far fewer replies without a
+command, but no more passes, 25% slower turns, 19% more tokens and more
+cut-offs. top_k really is applied: at temperature 2.0 with `top_k=1` three
+answers were identical, without it all three differed. One card-arm trial
+hit a verifier timeout on mteb-retrieve, which is 0/3 in every arm.
+
+**The 4-strike give-up rule is right.** Never giving up kept 5 trials past
+their 4th command-less turn in a row; none recovered, all ran until timeout
+(1,203–1,805 s). The three feal-differential ones had given up after 417–744 s
+in the baseline. The arm's 5 fewer passes are noise: mailman −2,
+sqlite-db-truncate −2, feal-linear −1, break-filter −1, extract-elf +1, all in
+trials the setting never touched (it's read only in the give-up check).
+Giving up after 8 needs no run of its own: two of the five never went past
+4–5 command-less turns in a row and would still have run out the clock; the
+other three went 14–17 and would have stopped at 8 instead of 4.
+
+**For the next batch:** 5 tasks gave the same result in every arm
+(feal-differential, mteb-leaderboard, mteb-retrieve never; sqlite-with-gcov,
+git-leak-recovery always). Swap them for tasks that go either way.
+
 ## 2026-10-13 — Analysis only: where the remaining points are
 
 No new runs; full run 3's transcripts and every per-trial CSV (544 trials).
