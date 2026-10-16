@@ -8,8 +8,9 @@
 #
 # Resuming skips trials that finished, re-runs unfinished ones (a trial
 # directory with no result.json) and the ones that failed on the gateway
-# connection or on authentication, so a dropped VPN costs a restart, not the
-# night. To redo a trial that finished, delete its directory first.
+# connection, on authentication or because their container did not start in
+# time, so a dropped VPN costs a restart, not the night. To redo a trial that
+# finished, delete its directory first.
 #
 # Env: TB_TASKS (task dir), N_CONCURRENT (default 3; use 2 if WSL has under
 # 24 GB, since eight tasks ask for 8 GB each). On Windows start this through
@@ -47,7 +48,8 @@ if config.get("job_name") != name:
 PY
   echo "Resuming $(dirname "$CFG")"
   exec harbor jobs resume -p "$(dirname "$CFG")" \
-    -f APIConnectionError -f APITimeoutError -f InternalServerError -f AuthenticationError
+    -f APIConnectionError -f APITimeoutError -f InternalServerError -f AuthenticationError \
+    -f EnvironmentStartTimeoutError
 fi
 
 [ -d "$TB_TASKS" ] || { echo "No task dir at $TB_TASKS (set TB_TASKS)" >&2; exit 1; }

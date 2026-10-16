@@ -23,7 +23,7 @@ def main() -> int:
     parser.add_argument(
         "--drop-infra-errors",
         action="store_true",
-        help="leave out trials that failed on the gateway connection "
+        help="leave out trials that failed on the gateway or at container start "
         "(dev-slice comparisons only; official numbers count them as 0)",
     )
     args = parser.parse_args()
