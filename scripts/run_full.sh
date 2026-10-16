@@ -32,6 +32,19 @@ if [ "${1:-}" = "resume" ]; then
     [ -f "$f" ] && { CFG="$f"; break; }
   done
   [ -n "$CFG" ] || { echo "No config.json under $DIR" >&2; exit 1; }
+  # harbor writes config.json with exclude_defaults, and job_name defaults to
+  # the current second, so a file written in the second the job was named has
+  # no job_name. Resume then names a new job and reruns every trial in a new
+  # directory. Pin it to this directory's name.
+  python3 - "$CFG" <<'PY'
+import json, os, sys
+path = sys.argv[1]
+config = json.load(open(path))
+name = os.path.basename(os.path.dirname(os.path.abspath(path)))
+if config.get("job_name") != name:
+    config["job_name"] = name
+    json.dump(config, open(path, "w"), indent=4)
+PY
   echo "Resuming $(dirname "$CFG")"
   exec harbor jobs resume -p "$(dirname "$CFG")" \
     -f APIConnectionError -f APITimeoutError -f InternalServerError -f AuthenticationError
