@@ -46,12 +46,11 @@ compared against the current best.
 **Full runs: 0.438 (39/89, 10-07) → 0.539 (48/89, 10-11) with #11 and 16k →
 0.584 (52/89, 10-12) with medium reasoning effort.**
 
-**Next: #20 and #21 against a baseline, the same day.** 13 tasks from the
-36 that pass only sometimes (28 always pass, 25 never have): those full run 3
-lost to a give-up, timeout or wrong answer, less path-tracing (31 min a
-trial), plus feal-linear-cryptanalysis (gives up often) and git-leak-recovery
-(regression guard). Judge by cut-offs, give-ups, timeouts and s/turn as well
-as passes; on 3 trials, ±2 passes between arms is noise.
+**Next: #24, reading only.** #20 and #21 didn't help (experiments.md,
+2026-10-14). Compare mini-swe-agent's prompt and loop with ours and list the
+concrete differences worth testing; those make up the next batch. Swap the 5
+tasks that gave the same result in every batch-1 arm for ones that go either
+way. Deadline: Wed 2 Dec 2026, 23:59 Madison time (Kaggle).
 
 | # | Experiment | Question it answers | Owner |
 |---|---|---|---|
@@ -74,10 +73,10 @@ as passes; on 3 trials, ±2 passes between arms is noise.
 | 17 | ~~System prompt says there is no network; TB 2.1 tasks have it~~ | No: in full run 3 no reply says it's offline, 33 trials installed or downloaded (199 commands, 1 network error). Dropped | ruoshi ✗ |
 | 18 | ~~Compact old turns on long tasks~~ | Not doing: turn time is in output, not input (sqlite-db-truncate: 7.7k input, 62 s/turn; path-tracing-reverse: 62k, 31 s/turn), and tokens no longer score | ✗ |
 | 19 | ~~Tooling: gateway 502s (`InternalServerError`) count as gateway failures~~ | Done in `run_full.sh resume`, `score.py`, `export_trials.py` | ruoshi ✅ |
-| 20 | Sampling as on the Qwen3.8-27B model card: temperature 1.0, top_p 0.95, top_k 20 | We run 0.2, far from what the model was evaluated with. Fewer cut-off streaks? | ruoshi |
-| 21 | Looser give-up rule: 8 command-less turns, or never give up | Give-ups used 17–59% of the time limit; extra turns are nearly free under the capped token penalty. At most ~2 tasks: only 2 of the 7 have ever passed | ruoshi |
+| 20 | ~~Sampling as on the Qwen3.8-27B model card: temperature 1.0, top_p 0.95, top_k 20~~ | No: 17/39 vs 18/39 at 0.2, 25% slower turns, more cut-offs (29 vs 21). Not merged (`ruoshi/feat-sampling`) | ruoshi ✗ |
+| 21 | ~~Looser give-up rule: 8 command-less turns, or never give up~~ | No: never giving up kept 5 trials alive and all 5 ran out the clock. The same data covers 8: those 5 would still fail. Keep 4 | ruoshi ✗ |
 | 22 | Long commands in the background and polled, command limit 60 → 120 s | 65 commands hit 60 s in full run 3 (24 Python/training, 16 servers or sleeps, 14 installs); a flat 180 s would let hung commands eat 2 more minutes each. Small: mostly never-passing tasks | |
-| 23 | ~~Wait for apt/dpkg left running by the image before starting~~ | Done: six full-run-3 installs failed on the dpkg lock (three of those trials passed anyway) | ruoshi ✅ |
+| 23 | ~~Wait for apt/dpkg left running by the image before starting~~ | Done: six full-run-3 installs failed on the dpkg lock (three of those trials passed anyway). Not yet seen in a real run: check `agent_setup` time in the next run on main; ~120 s means the name match fired on a resident `unattended-upgrade-shutdown`. If so, check `/proc/locks` for the dpkg and `/var/lib/apt/lists/lock` locks instead | ruoshi ✅ |
 | 24 | Read mini-swe-agent's prompt and loop against ours | Badger Agents reached 51/89 with it; we're at 52. Find concrete differences before running anything | |
 
 ## Phase 3 — LangGraph
