@@ -3,6 +3,85 @@
 Newest first. One entry per run we want to remember: what changed, what the
 numbers were, what we learned. Numbers come from `scripts/score.py`.
 
+## 2026-10-17 — Full run 4: same agent as full run 3, 44/89
+
+- Code: `ruoshi/fix-resume-job-name` (`0d9593b`); `agent/` identical to main
+  `5c9fe4b`. Settings: code defaults (medium, 0.2, 16k, 4-strike give-up,
+  100 turns, 60 s commands, apt wait) plus `LLM_BASE_URL` and `LLM_MODEL`.
+- Started 10-16 10:12 CDT. The laptop blue-screened at 16:00 (NVIDIA driver
+  `nvlddmkm.sys` 617.42); resumed 22:17, last trial 10-17 00:48, about 8.5 h
+  of running. Results: `eval/results/full-run-4.csv`.
+
+| | Full run 3 | Full run 4 |
+|---|---|---|
+| Passes | 52 | 44 |
+| Wrong answers | 15 | 19 |
+| Timeouts | 10 | 14 |
+| Gave up | 7 | 6 |
+| Hit the 100-turn cap | 3 | 4 |
+| Verifier timeouts | 2 | 2 |
+| Tokens per task | 476k | 565k |
+
+TB 0.49438, leaderboard 0.49433. Gateway median 13 s/turn, no slow trials,
+no connection failures.
+
+**Same agent, 8 fewer passes: noise.** 11 tasks went pass → fail and 3 fail →
+pass. Matched task by task, output per turn is unchanged (median ratio 1.03,
+geometric mean 1.05; 29 tasks over 20% longer, 22 over 20% shorter), and
+output tokens per second were 105–120 throughout, as in run 3. Two trials
+(rstan-to-pystan, sam-cell-seg) were rerun because the crash interrupted
+them; the 14 trials run after the restart passed 6, the same as those tasks
+in run 3. Runs 2→3 flipped 24 tasks and runs 3→4 flipped 14, so one full run
+is a rough number. **Estimate for this agent: 2 runs, 44 and 52, mean 48/89
+(0.539).**
+
+**The resume fix worked in a real interruption.** This job's config.json had
+no `job_name`; resume pinned it and continued in the same directory, with
+none of the 74 finished trials rerun. Setup took at most 0.5 s in all 89
+trials, so the apt wait never fired.
+
+## 2026-10-15 — Batch 2: what a cut-off reply leaves behind (#25): no
+
+- From #24 (reading mini-swe-agent, 10-14): it drops a cut-off reply from the
+  history and tells the model to answer concisely and think briefly; we keep
+  the reply's last 2000 characters and a generic nudge.
+- Code: `ruoshi/feat-cutoff-handling` (`d300d31`), not adopted:
+  `AGENT_CUTOFF_HANDLING` = `tail` (as now), `concise` (tail plus the
+  mini-swe-agent nudge) or `drop` (nudge only). Main otherwise.
+- 13 tasks, 3 trials, three arms the same day: batch 1's set with
+  feal-differential, mteb-leaderboard, mteb-retrieve and sqlite-with-gcov
+  swapped for polyglot-rust-c, largest-eigenval, code-from-image and
+  protein-assembly. Results: `eval/results/cutoff-tail.csv`,
+  `cutoff-concise.csv`, `cutoff-drop.csv`.
+
+| | tail | concise | drop |
+|---|---|---|---|
+| Passes | 18/39 | 19/39 | 21/39 |
+| Wrong answers | 13 | 15 | 12 |
+| Give-ups | 5 | 2 | 4 |
+| Timeouts | 3 | 3 | 1 |
+| Other errors | 0 | 0 | 1 |
+| Cut-off turns | 19 | 11 | 22 |
+| Median s/turn | 12.5 | 9.8 | 11.2 |
+| Tokens per task | 408k | 427k | 506k |
+
+No turn-cap hits; each column sums to 39. drop's error is build-pov-ray's
+verifier not writing a reward file.
+
+**No difference we can attribute to the setting.** Cut-offs are rare now:
+5–9 trials per arm had any, 1–2% of all turns, and the setting only acts after
+one. Trials with a cut-off passed 3/7, 1/5, 4/9; trials without passed 15/32,
+18/34, 17/30, so two of drop's three extra passes came from trials the
+setting never touched. The arms ran by day, early evening and night, which is
+likely where the s/turn spread comes from. **Not adopted:** drop also costs
+25% more tokens per task. 6 of the 11 give-ups had no cut-off at all, they
+were command-less replies (#14); break-filter-js-from-html was 0/3 with 2
+give-ups in every arm.
+
+**Tooling.** One concise trial needed a rerun after its container didn't
+start in time, and `harbor jobs resume` reran the whole arm: harbor had left
+`job_name` out of config.json. Fixed in `run_full.sh resume` (#26).
+
 ## 2026-10-14 — Batch 1: model-card sampling (#20) and never giving up (#21): no
 
 - Code: `ruoshi/feat-sampling` (`6867ff0`), not merged: optional `top_p`,
