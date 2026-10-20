@@ -102,7 +102,7 @@ replaces it.
 - ~~TB 2.0 or 2.1?~~ **2.1**, confirmed 9/23. The challenge repo still says
   2.0, so the writeup must say which we used.
 - ~~Where do full runs happen?~~ Windows/WSL2 (ruoshi has one).
-- ~~Starter code has no LICENSE upstream; ask Chris?~~ Not asking: the
-  organizers gave the starter code to participants for this challenge.
+- Starter code has no LICENSE upstream; ask Chris before we submit an MIT repo
+  built on it.
 - LangSmith for tracing sends transcripts to a third party. Fine for public
   benchmark tasks, but agree on it before turning it on.
