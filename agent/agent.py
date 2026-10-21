@@ -66,6 +66,7 @@ from agent.llm import LLMClient
 from agent.loop_guard import LoopGuard
 from agent.prompts import (
     ACT_NUDGE_MESSAGE,
+    CHECKLIST_MESSAGE,
     NUDGE_MESSAGE,
     SYSTEM_PROMPT,
     observation_message,
@@ -81,6 +82,15 @@ usable, turn after turn. In our baseline one task emitted the same truncated
 thought nine times in a row and then hit the task timeout, having spent 1M
 tokens. Four strikes and we stop: the remaining budget buys nothing."""
 COMMAND_TIMEOUT_SEC = int(os.environ.get("AGENT_COMMAND_TIMEOUT_SEC", "60"))
+REQUIREMENT_CHECK = os.environ.get("AGENT_REQUIREMENT_CHECK", "0") == "1"
+"""The first TASK_COMPLETE asks the model to check the result against the task
+requirement by requirement, and the second ends the task (plan #30). 56 of 85
+failures on tasks we solve only sometimes were confident wrong answers, and 53
+of those had checked something, just not what the task asked for. Unlike the
+generic check of #16, this lists the task's own requirements and forbids
+changing what already passes."""
+STOP_ON_FAILURES = os.environ.get("AGENT_STOP_ON_FAILURES", "1") == "1"
+"""Whether 8 failing commands in a row end the task (see loop_guard.py, plan #31)."""
 APT_WAIT_SEC = 120
 APT_WAIT_COMMAND = (
     f"for _ in $(seq {APT_WAIT_SEC // 2}); do busy=0; "
@@ -163,7 +173,7 @@ class BaselineAgent(BaseAgent):
             {"role": "user", "content": instruction},
         ]
 
-        guard = LoopGuard()
+        guard = LoopGuard(stop_on_failures=STOP_ON_FAILURES)
         n_input = 0
         n_output = 0
         turns = 0
@@ -172,6 +182,10 @@ class BaselineAgent(BaseAgent):
         stop_reason = None
         stopped_by_guard = None
         no_command_replies = 0
+        checking = False
+        check_started_turn = None
+        check_turns = 0
+        check_commands = 0
         commands_after_bump = 0
         next_temperature = None
 
@@ -181,6 +195,8 @@ class BaselineAgent(BaseAgent):
             # 1. Ask the LLM what to do next.
             text, usage = await llm.chat(messages, temperature=next_temperature)
             bumped = next_temperature is not None
+            if checking:
+                check_turns += 1
             next_temperature = None
             n_input += usage.get("prompt_tokens", 0)
             n_output += usage.get("completion_tokens", 0)
@@ -195,6 +211,9 @@ class BaselineAgent(BaseAgent):
                 "stopped_by_guard": stopped_by_guard,
                 "no_command_replies": no_command_replies,
                 "commands_after_bump": commands_after_bump,
+                "check_started_turn": check_started_turn,
+                "check_turns": check_turns,
+                "check_commands": check_commands,
                 "messages": messages,
             }
 
@@ -204,6 +223,13 @@ class BaselineAgent(BaseAgent):
             action = parse_action(text)
 
             if action.kind == "done":
+                if REQUIREMENT_CHECK and not checking:
+                    # First "done": check each requirement before ending.
+                    checking = True
+                    check_started_turn = turns
+                    context.metadata["check_started_turn"] = turns
+                    messages.append({"role": "user", "content": CHECKLIST_MESSAGE})
+                    continue
                 finished = True
                 context.metadata["finished"] = True
                 break
@@ -236,6 +262,9 @@ class BaselineAgent(BaseAgent):
             if bumped:
                 commands_after_bump += 1
                 context.metadata["commands_after_bump"] = commands_after_bump
+            if checking:
+                check_commands += 1
+                context.metadata["check_commands"] = check_commands
 
             # 3. Ask the loop guard whether this command is worth running.
             verdict = guard.before(action.command)

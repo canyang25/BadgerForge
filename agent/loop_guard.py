@@ -21,7 +21,8 @@ REPEAT_ABORT_AT = 3
 """Refuse a command the model has already run this many times."""
 
 CONSECUTIVE_FAILURE_ABORT_AT = 8
-"""Stop the task after this many failing commands in a row."""
+"""Stop the task after this many failing commands in a row, or, with
+``stop_on_failures=False``, remind the model every this-many failures."""
 
 
 class Attempt(BaseModel):
@@ -47,6 +48,10 @@ class LoopGuard(BaseModel):
 
     history: list[Attempt] = Field(default_factory=list)
     consecutive_failures: int = 0
+    stop_on_failures: bool = True
+    """False turns the failure stop into a reminder (plan #31). In 325 trials at
+    main's settings it ended 4, and 3 of those tasks were solved in other
+    trials: tune-mjcf's own checker exits 1 until the model is fast enough."""
 
     def _times_seen(self, command: str) -> int:
         return sum(1 for a in self.history if a.command == command)
@@ -84,6 +89,17 @@ class LoopGuard(BaseModel):
             return GuardVerdict()
 
         self.consecutive_failures += 1
+        if not self.stop_on_failures:
+            if self.consecutive_failures % CONSECUTIVE_FAILURE_ABORT_AT == 0:
+                return GuardVerdict(
+                    note=(
+                        f"{self.consecutive_failures} commands in a row have exited "
+                        "non-zero. If that is expected here (a checker that reports "
+                        "'not yet', for example), carry on. Otherwise read the last "
+                        "error closely and change approach."
+                    ),
+                )
+            return GuardVerdict()
         if self.consecutive_failures >= CONSECUTIVE_FAILURE_ABORT_AT:
             return GuardVerdict(
                 stop=True,
