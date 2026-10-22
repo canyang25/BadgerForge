@@ -10,7 +10,10 @@ cd "$(dirname "$0")/.."
 
 TASK="${1:?usage: run_task.sh <task-name> [extra harbor flags]}"
 shift
-TB_TASKS="${TB_TASKS:-$HOME/Documents/terminal-bench-2-1/tasks}"
+if [ -z "${TB_TASKS:-}" ]; then
+  TB_TASKS="$HOME/Documents/terminal-bench-2-1/tasks"
+  [ -d "$TB_TASKS" ] || TB_TASKS="$HOME/terminal-bench-2-1/tasks"
+fi
 [ -d "$TB_TASKS/$TASK" ] || { echo "No such task: $TB_TASKS/$TASK" >&2; exit 1; }
 
 source scripts/env.sh
