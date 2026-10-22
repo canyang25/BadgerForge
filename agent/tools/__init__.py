@@ -83,7 +83,7 @@ def parse_action(text: str) -> Action:
     -------
     Action
         The parsed action. ``kind`` is ``"shell"`` if a bash block was found,
-        ``"done"`` if TASK_COMPLETE was found (and no code block), or
+        ``"done"`` if the reply is exactly TASK_COMPLETE, or
         ``"none"`` if neither was present.
     """
     match = CODE_BLOCK_RE.search(text)
@@ -91,7 +91,7 @@ def parse_action(text: str) -> Action:
         command = match.group(1).strip()
         if command:
             return Action("shell", command)
-    if DONE_MARKER in text:
+    if text.strip() == DONE_MARKER:
         return Action("done")
     return Action("none")
 
