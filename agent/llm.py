@@ -195,8 +195,6 @@ class LLMClient:
             # truncated thought nine times in a row.
             thinking = getattr(message, "reasoning_content", None) or ""
             text = _tail(thinking, REASONING_TAIL_CHARS)
-        elif truncated:
-            text = _tail(text, REASONING_TAIL_CHARS)
         usage = {}
         if response.usage is not None:
             usage = {

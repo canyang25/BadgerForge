@@ -62,7 +62,7 @@ from harbor.agents.base import BaseAgent
 from harbor.environments.base import BaseEnvironment
 from harbor.models.agent.context import AgentContext
 
-from agent.llm import LLMClient
+from agent.llm import LLMClient, REASONING_TAIL_CHARS, _tail
 from agent.loop_guard import LoopGuard
 from agent.prompts import (
     ACT_NUDGE_MESSAGE,
@@ -198,7 +198,8 @@ class BaselineAgent(BaseAgent):
                 "messages": messages,
             }
 
-            messages.append({"role": "assistant", "content": text})
+            history_text = _tail(text, REASONING_TAIL_CHARS) if llm.last_truncated else text
+            messages.append({"role": "assistant", "content": history_text})
 
             # 2. Parse the response into an action (see tools.py).
             action = parse_action(text)
