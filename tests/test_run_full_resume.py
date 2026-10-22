@@ -68,3 +68,23 @@ def test_leaves_a_config_that_already_has_it_untouched(tmp_path):
     r, _ = resume(tmp_path, inner.parent)
     assert r.returncode == 0, r.stderr
     assert (inner / "config.json").read_text() == before
+
+
+def test_resuming_through_a_symlink_uses_the_real_directory_name(tmp_path):
+    inner = make_job(tmp_path, {"jobs_dir": "jobs/full-20261015-1523"})
+    latest = tmp_path / "jobs" / "latest"
+    latest.symlink_to(inner, target_is_directory=True)
+    r, _ = resume(tmp_path, latest)
+    assert r.returncode == 0, r.stderr
+    assert json.loads((inner / "config.json").read_text())["job_name"] == "2026-10-15__15-23-55"
+
+
+def test_a_symlink_never_overwrites_a_correct_job_name(tmp_path):
+    inner = make_job(
+        tmp_path, {"job_name": "2026-10-15__15-23-55", "jobs_dir": "jobs/full-20261015-1523"}
+    )
+    before = (inner / "config.json").read_text()
+    (tmp_path / "jobs" / "latest").symlink_to(inner, target_is_directory=True)
+    r, _ = resume(tmp_path, tmp_path / "jobs" / "latest")
+    assert r.returncode == 0, r.stderr
+    assert (inner / "config.json").read_text() == before

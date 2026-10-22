@@ -36,12 +36,13 @@ if [ "${1:-}" = "resume" ]; then
   # harbor writes config.json with exclude_defaults, and job_name defaults to
   # the current second, so a file written in the second the job was named has
   # no job_name. Resume then names a new job and reruns every trial in a new
-  # directory. Pin it to this directory's name.
+  # directory. Pin it to this directory's real name: through a symlink such as
+  # jobs/latest, the link's own name would overwrite a correct job_name.
   python3 - "$CFG" <<'PY'
 import json, os, sys
 path = sys.argv[1]
 config = json.load(open(path))
-name = os.path.basename(os.path.dirname(os.path.abspath(path)))
+name = os.path.basename(os.path.dirname(os.path.realpath(path)))
 if config.get("job_name") != name:
     config["job_name"] = name
     json.dump(config, open(path, "w"), indent=4)
