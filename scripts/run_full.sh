@@ -49,6 +49,7 @@ if config.get("job_name") != name:
 PY
   echo "Resuming $(dirname "$CFG")"
   exec harbor jobs resume -p "$(dirname "$CFG")" \
+    -f CancelledError \
     -f APIConnectionError -f APITimeoutError -f InternalServerError -f AuthenticationError \
     -f EnvironmentStartTimeoutError
 fi
