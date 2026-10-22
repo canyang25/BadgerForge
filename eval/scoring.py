@@ -44,8 +44,10 @@ gateway trips both. Checked against all 135 trials we had on 2026-10-05: it
 catches every trial from the known degraded windows and nothing from the
 healthy post-#8 runs."""
 
-INFRA_ERRORS = frozenset({"APIConnectionError", "APITimeoutError", "InternalServerError"})
-"""Exceptions that mean the gateway failed, not the agent."""
+INFRA_ERRORS = frozenset({
+    "APIConnectionError", "APITimeoutError", "InternalServerError", "EnvironmentStartTimeoutError",
+})
+"""Exceptions that mean the gateway or the container start failed, not the agent."""
 
 
 def _parse_time(value: str | None) -> datetime | None:
@@ -267,12 +269,12 @@ def _health_lines(summary: JobSummary) -> list[str]:
         n = len(summary.infra_failures)
         if summary.dropped_infra:
             lines.append(
-                f"Dropped {n} trial(s) that failed on the gateway connection. "
+                f"Dropped {n} trial(s) that failed on the gateway or at container start. "
                 "Re-run them to keep the trial count per task even:"
             )
         else:
             lines.append(
-                f"WARNING: {n} trial(s) failed on the gateway connection and count "
+                f"WARNING: {n} trial(s) failed on the gateway or at container start and count "
                 "as 0. Re-run them, or pass --drop-infra-errors to leave them out:"
             )
         for t in summary.infra_failures:

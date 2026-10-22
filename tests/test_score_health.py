@@ -97,6 +97,15 @@ def test_connection_failures_can_be_left_out(job):
     assert [t.trial_id for t in summary.infra_failures] == ["dropped__a"]
 
 
+def test_a_container_that_never_started_is_an_infrastructure_failure(tmp_path):
+    # Batch 2 (2026-10-15) lost one trial per arm this way, hours into the run.
+    write_trial(tmp_path, "normal__a")
+    write_trial(tmp_path, "nostart__a", turns=None, seconds=None, output_tokens=0,
+                reward=None, exception="EnvironmentStartTimeoutError")
+    summary = summarize(load_trials(tmp_path))
+    assert [t.trial_id for t in summary.infra_failures] == ["nostart__a"]
+
+
 def test_report_warns_about_both_problems(job):
     text = format_table(summarize(load_trials(job)))
     assert "WARNING: 1 trial(s) slow at the gateway" in text

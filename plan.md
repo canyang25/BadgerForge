@@ -44,13 +44,14 @@ Small, measurable changes before any rewrite. Each is one dev-slice run
 compared against the current best.
 
 **Full runs: 0.438 (39/89, 10-07) → 0.539 (48/89, 10-11) with #11 and 16k →
-0.584 (52/89, 10-12) with medium reasoning effort.**
+0.584 (52/89, 10-12) with medium reasoning effort → 0.494 (44/89, 10-16), the
+same agent again. Current estimate: 2 runs, 44 and 52, mean 48/89 (0.539).**
 
-**Next: #24, reading only.** #20 and #21 didn't help (experiments.md,
-2026-10-14). Compare mini-swe-agent's prompt and loop with ours and list the
-concrete differences worth testing; those make up the next batch. Swap the 5
-tasks that gave the same result in every batch-1 arm for ones that go either
-way. Deadline: Wed 2 Dec 2026, 23:59 Madison time (Kaggle).
+**Next: wrong answers.** They're the largest failure (15 and 19 in full
+runs 3 and 4); Andrew is reading transcripts for a common cause. The next full
+run tests whatever comes of it and adds a sample to the estimate. Before long
+runs, switch the Windows laptop's GPU to Eco mode (docs/setup-windows.md).
+Deadline: Wed 2 Dec 2026, 23:59 Madison time (Kaggle).
 
 | # | Experiment | Question it answers | Owner |
 |---|---|---|---|
@@ -67,7 +68,7 @@ way. Deadline: Wed 2 Dec 2026, 23:59 Madison time (Kaggle).
 | 11 | ~~Short command-less replies: stronger nudge, temperature 0.7 for one turn~~ | Yes: no give-ups on short replies (3 of 7 at 16k), and the next reply has a command 82% of the time (65% before). Passes 14/30, within noise | ruoshi ✅ |
 | 12 | ~~`LLM_MAX_TOKENS=16384`~~ | Yes, on top of #11: 19/30 vs 14/30, cut-off give-ups 3 vs 8. Costs time: 46 vs 26 s/turn, timeouts 6 vs 2. Now the default | ruoshi ✅ |
 | 13 | ~~`LLM_REASONING_EFFORT=medium`, again~~ | Slice: a wash (18 vs 19/30). Full run: 52/89 vs 48/89, timeouts 20 → 10, wrong answers 5 → 15, turns 12 vs 28 s. Now the default | ruoshi ✅ |
-| 14 | Empty answers: no content, finish reason not `length` | Half the replies in the give-ups of full runs 2 and 3. The act nudge recovers most, but llm.py labels them "cut off", which they aren't. Own handling? | |
+| 14 | Empty answers: no content, finish reason not `length` | Half the replies in the give-ups of full runs 2 and 3, and 6 of batch 2's 11 give-ups had no cut-off at all. The act nudge recovers most, but llm.py labels them "cut off", which they aren't. Own handling? | |
 | 15 | Tell the model how much time is left | Later: Harbor doesn't give our agent the limit, and none of full run 3's 10 timeouts had a scoring state at the deadline (4 of 53 timeouts in all runs did) | |
 | 16 | ~~Check the work before TASK_COMPLETE, at medium or full effort~~ | No: 26 / 27 / 25 of 39 (none / medium / full effort) on 13 tasks. The check mostly re-confirms; when it acts it breaks working solutions as often as it fixes. Not merged (`ruoshi/feat-verify-before-done`) | ruoshi ✗ |
 | 17 | ~~System prompt says there is no network; TB 2.1 tasks have it~~ | No: in full run 3 no reply says it's offline, 33 trials installed or downloaded (199 commands, 1 network error). Dropped | ruoshi ✗ |
@@ -75,9 +76,14 @@ way. Deadline: Wed 2 Dec 2026, 23:59 Madison time (Kaggle).
 | 19 | ~~Tooling: gateway 502s (`InternalServerError`) count as gateway failures~~ | Done in `run_full.sh resume`, `score.py`, `export_trials.py` | ruoshi ✅ |
 | 20 | ~~Sampling as on the Qwen3.8-27B model card: temperature 1.0, top_p 0.95, top_k 20~~ | No: 17/39 vs 18/39 at 0.2, 25% slower turns, more cut-offs (29 vs 21). Not merged (`ruoshi/feat-sampling`) | ruoshi ✗ |
 | 21 | ~~Looser give-up rule: 8 command-less turns, or never give up~~ | No: never giving up kept 5 trials alive and all 5 ran out the clock. The same data covers 8: those 5 would still fail. Keep 4 | ruoshi ✗ |
-| 22 | Long commands in the background and polled, command limit 60 → 120 s | 65 commands hit 60 s in full run 3 (24 Python/training, 16 servers or sleeps, 14 installs); a flat 180 s would let hung commands eat 2 more minutes each. Small: mostly never-passing tasks | |
-| 23 | ~~Wait for apt/dpkg left running by the image before starting~~ | Done: six full-run-3 installs failed on the dpkg lock (three of those trials passed anyway). Not yet seen in a real run: check `agent_setup` time in the next run on main; ~120 s means the name match fired on a resident `unattended-upgrade-shutdown`. If so, check `/proc/locks` for the dpkg and `/var/lib/apt/lists/lock` locks instead | ruoshi ✅ |
-| 24 | Read mini-swe-agent's prompt and loop against ours | Badger Agents reached 51/89 with it; we're at 52. Find concrete differences before running anything | |
+| 22 | ~~Long commands in the background and polled, command limit 60 → 120 s~~ | Not doing: small gain (65 commands hit 60 s in full run 3, mostly in never-passing tasks), and mini-swe-agent does no better (30 s limit, no background jobs) | ✗ |
+| 23 | ~~Wait for apt/dpkg left running by the image before starting~~ | Done: six full-run-3 installs failed on the dpkg lock (three of those trials passed anyway). In real runs since (batch 2, full run 4: 206 trials) setup took at most 0.5 s, so it never fires on a resident process. If it ever does, check `/proc/locks` for the dpkg and `/var/lib/apt/lists/lock` locks instead | ruoshi ✅ |
+| 24 | ~~Read mini-swe-agent's prompt and loop against ours~~ | Done 10-14. Biggest difference: a cut-off reply is dropped from the history and the model is told to think briefly (→ #25). Others: no turn cap (#3), says every command runs in a fresh shell (#27), quiet env vars (#28), advice when output is long (#29) | ruoshi ✅ |
+| 25 | ~~What a cut-off reply leaves behind: its 2000-char tail (as now), the tail plus a "be concise" nudge, or nothing (mini-swe-agent)~~ | No: 18 / 19 / 21 of 39, within noise; cut-offs are 1–2% of turns at 16k and medium. Dropping costs 25% more tokens per task. Not adopted; code on `ruoshi/feat-cutoff-handling` | ruoshi ✗ |
+| 26 | ~~Tooling: resume must never rerun a whole job~~ | Done: `run_full.sh resume` pins `job_name` (harbor drops it from config.json when it equals the default), and also reruns container-start timeouts. Worked in full run 4's blue-screen restart: none of 74 finished trials rerun | ruoshi ✅ |
+| 27 | Tell the model each command runs in a fresh shell (`cd` and env vars don't carry over) | From mini-swe-agent. Check transcripts for commands that failed on a lost `cd` first | |
+| 28 | Quiet env vars for commands: `PAGER=cat`, `PIP_PROGRESS_BAR=off`, `TQDM_DISABLE=1` | From mini-swe-agent. Check how much observation text progress bars take first | |
+| 29 | When output is cut, tell the model to use head/tail/grep or a file | From mini-swe-agent. Probably small | |
 
 ## Phase 3 — LangGraph
 

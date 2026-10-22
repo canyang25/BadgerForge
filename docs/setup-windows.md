@@ -177,6 +177,10 @@ picked from, and it lets anyone analyse the run without the Windows machine.
 
 ## Troubleshooting
 
+- **Blue screen during a long run (`nvlddmkm.sys`, error 0x7E).** The NVIDIA
+  driver crashed (617.42 on 2026-10-16). Runs don't use the discrete GPU:
+  switch it to Eco mode in Armoury Crate before starting, or update the driver.
+  Then resume; finished trials are kept.
 - **`wsl` commands fail with `Wsl/Service/WSAETIMEDOUT` but the run goes on.**
   Windows is out of memory; the VM is holding page cache. `wsl -l -v` still
   answers. Hand the cache back:
