@@ -182,20 +182,8 @@ class LLMClient:
         text = message.content or ""
         truncated = response.choices[0].finish_reason == "length"
         self.last_truncated = truncated
-        if not text:
-            # Reasoning models stream thinking into `reasoning_content` and
-            # only fill `content` once the thinking closes. When generation
-            # hits max_tokens mid-thought, `content` is empty and all we have
-            # is an unfinished thought.
-            #
-            # We keep only its tail, and only so the model can see where it
-            # ran out of room. Storing the whole thing is what wrecked our
-            # baseline: 29k characters of unfinished reasoning per turn, resent
-            # on every later turn, with the model eventually emitting the same
-            # truncated thought nine times in a row.
-            thinking = getattr(message, "reasoning_content", None) or ""
-            text = _tail(thinking, REASONING_TAIL_CHARS)
-        elif truncated:
+        # Reasoning drafts must never become executable actions.
+        if truncated:
             text = _tail(text, REASONING_TAIL_CHARS)
         usage = {}
         if response.usage is not None:

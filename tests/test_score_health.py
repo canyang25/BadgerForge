@@ -97,6 +97,17 @@ def test_connection_failures_can_be_left_out(job):
     assert [t.trial_id for t in summary.infra_failures] == ["dropped__a"]
 
 
+def test_rate_limit_failures_are_reported_and_can_be_left_out(tmp_path):
+    write_trial(tmp_path, "normal__a")
+    write_trial(tmp_path, "limited__a", reward=None, exception="RateLimitError")
+    trials = load_trials(tmp_path)
+    summary = summarize(trials)
+    assert summary.tb_score == 0.5
+    assert [t.trial_id for t in summary.infra_failures] == ["limited__a"]
+    assert "RateLimitError" in format_table(summary)
+    assert summarize(trials, drop_infra=True).tb_score == 1.0
+
+
 def test_report_warns_about_both_problems(job):
     text = format_table(summarize(load_trials(job)))
     assert "WARNING: 1 trial(s) slow at the gateway" in text

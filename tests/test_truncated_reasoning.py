@@ -5,7 +5,43 @@ reasoning per turn, stored whole, resent every turn, the same truncated
 thought emitted nine times, 1.07M tokens spent, task timed out.
 """
 
-from agent.llm import REASONING_TAIL_CHARS, _tail
+import asyncio
+from types import SimpleNamespace
+
+import pytest
+
+from agent.llm import LLMClient, REASONING_TAIL_CHARS, _tail
+from agent.tools import parse_action
+
+
+@pytest.mark.parametrize("content, kind", [
+    (None, "none"),
+    ("", "none"),
+    ("```bash\necho final\n```", "shell"),
+    ("TASK_COMPLETE", "done"),
+])
+@pytest.mark.parametrize("finish_reason", ["length", "stop"])
+@pytest.mark.parametrize("reasoning", ["```bash\necho draft\n```", "TASK_COMPLETE"])
+def test_only_final_content_is_an_action(monkeypatch, content, kind, finish_reason, reasoning):
+    monkeypatch.setenv("LLM_MODEL", "test-model")
+    monkeypatch.setenv("LLM_API_KEY", "test")
+    client = LLMClient()
+
+    async def request(*args):
+        return SimpleNamespace(
+            choices=[SimpleNamespace(
+                message=SimpleNamespace(content=content, reasoning_content=reasoning),
+                finish_reason=finish_reason,
+            )],
+            usage=SimpleNamespace(prompt_tokens=10, completion_tokens=5),
+        )
+
+    monkeypatch.setattr(client, "_request_with_retries", request)
+    text, usage = asyncio.run(client.chat([]))
+    assert text == (content or "")
+    assert parse_action(text).kind == kind
+    assert client.last_truncated is (finish_reason == "length")
+    assert usage == {"prompt_tokens": 10, "completion_tokens": 5}
 
 
 def test_short_response_is_left_alone():
