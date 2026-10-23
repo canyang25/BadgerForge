@@ -3,6 +3,84 @@
 Newest first. One entry per run we want to remember: what changed, what the
 numbers were, what we learned. Numbers come from `scripts/score.py`.
 
+## 2026-10-22 — Full run 5: 49/89; estimate for main 48.3/89
+
+- Code: `ruoshi/feat-checklist-and-guard` (`f82c570`), main's agent plus two
+  switches; only `AGENT_STOP_ON_FAILURES=0` set (plan 31), the checklist (plan 30) off.
+  Otherwise code defaults. Concurrency 2, GPU in hybrid mode.
+- 10-22 12:34 to 20:40 CDT, 8 h 7 min; no interruption, no reruns, no
+  infrastructure failures. Results: `eval/results/full-run-5.csv`.
+
+| | Full run 5 | Full run 4 | Full run 3 |
+|---|---|---|---|
+| Passes | 49 | 44 | 52 |
+| Wrong answers | 17 | 19 | 15 |
+| Timeouts | 12 | 14 | 10 |
+| Gave up | 7 | 6 | 7 |
+| Hit the 100-turn cap | 3 | 4 | 3 |
+| Verifier timeouts | 0 | 2 | 2 |
+| No result file | 1 | 0 | 0 |
+
+TB 0.55056, total tokens 42,784,906 (481k per task), leaderboard 0.55051.
+Gateway median 12 s/turn. The missing result file is build-pov-ray: at turn
+76 the agent ran `kill -9 -1` and broke its own container, so the verifier
+couldn't run; counted as a failure.
+
+**Plan 31 changed no outcome.** Two trials reached 8 failures in a row: build-pov-ray
+(after the kill every command failed; it echoed and slept for 17 more turns to
+the turn cap) and winning-avg-corewars (switched approach after the reminder,
+still lost, timed out). The old rule would have stopped both at the 8th
+failure with the same result. So this run counts as a run of main, with a few
+more tokens. Plan 31 is not adopted.
+
+**Estimate for main: 3 runs, 52, 44, 49, mean 48.3/89 (0.543),** standard
+deviation about 4 tasks, close to what one run's random spread predicts
+(about 4.7). Across the three runs 38 tasks always pass, 31 never do and 20
+go either way. Against run 3: 6 more passed, 9 fewer; against run 4: 8 more,
+3 fewer.
+
+## 2026-10-21 — Batch 3: requirement checklist (plan 30) and failure stop as a reminder (plan 31): no
+
+Background, an analysis on 10-20 (no runs): on the 24 tasks we solve only
+sometimes, 56 of 85 failures at main's settings were confident wrong answers,
+and 53 of those had checked something in their last commands, just not what
+the task required. Failing and passing trials used about the same turns and
+time. Groups: didn't check the task's own requirements (13 tasks), stuck on one
+approach (5), thought without writing the deliverable (3), stopped by our loop
+guard (1), grader download timeouts (2).
+
+- Code: `ruoshi/feat-checklist-and-guard` (`1fb3390`), not merged.
+  `AGENT_REQUIREMENT_CHECK=1`: the first TASK_COMPLETE asks for a check of
+  each requirement in the task text, changing nothing that already passes.
+  `AGENT_STOP_ON_FAILURES=0`: 8 failing commands in a row remind instead of
+  ending the task.
+- 3 trials. Baseline on 16 tasks (the 13 "didn't check" tasks plus tune-mjcf,
+  polyglot-rust-c, compile-compcert); the checklist on the 13; the reminder on
+  the 3. Results: `eval/results/b3-base.csv`, `b3-checklist.csv`, `b3-nostop.csv`.
+
+| | Passes | Wrong | Turn cap | Gave up | Timeout |
+|---|---|---|---|---|---|
+| Baseline, 13 tasks | 20/39 | 18 | 0 | 1 | 0 |
+| Checklist, 13 tasks | 20/39 | 19 | 0 | 0 | 0 |
+| Baseline, 3 tasks | 3/9 | 2 | 2 | 0 | 2 |
+| Reminder, 3 tasks | 5/9 | 0 | 3 | 0 | 1 |
+
+**The checklist ran every time and changed almost nothing.** All 39 trials
+entered it, usually for 2–3 turns with one combined check script. It covered
+the requirement a task used to miss 9 times, partly 14 times, not 16 times
+(query-optimize never timed anything; mteb-leaderboard never checked the date
+cut-off). One fix, by chance; nothing broken. The model's checks are looser
+than the graders' and test structure rather than behaviour, so they re-confirm
+its first answer, the same as plan 16.
+
+**The reminder was never tested.** No trial in its arm reached 8 failures in a
+row (at most 6); the 5/9 comes from polyglot-rust-c writing its file at once.
+In the baseline the old rule stopped polyglot-rust-c twice at turns 8–9, after
+it had run prose as commands.
+
+**Tooling.** The Docker engine dropped 11:31–12:29; the 4 trials that ended in
+that window were set aside and rerun, plus 2 that hadn't finished.
+
 ## 2026-10-17 — Full run 4: same agent as full run 3, 44/89
 
 - Code: `ruoshi/fix-resume-job-name` (`0d9593b`); `agent/` identical to main
