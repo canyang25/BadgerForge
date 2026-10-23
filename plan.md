@@ -44,14 +44,18 @@ Small, measurable changes before any rewrite. Each is one dev-slice run
 compared against the current best.
 
 **Full runs: 0.438 (39/89, 10-07) → 0.539 (48/89, 10-11) with #11 and 16k →
-0.584 (52/89, 10-12) with medium reasoning effort → 0.494 (44/89, 10-16), the
-same agent again. Current estimate: 2 runs, 44 and 52, mean 48/89 (0.539).**
+0.584 (52/89, 10-12) with medium reasoning effort. The same agent since: 0.494
+(44/89, 10-16) and 0.551 (49/89, 10-22). Estimate for main: 3 runs, 52, 44
+and 49, mean 48.3/89 (0.543), standard deviation about 4 tasks.**
 
-**Next: wrong answers.** They're the largest failure (15 and 19 in full
-runs 3 and 4); Andrew is reading transcripts for a common cause. The next full
-run tests whatever comes of it and adds a sample to the estimate. Before long
-runs, switch the Windows laptop's GPU to Eco mode (docs/setup-windows.md).
-Deadline: Wed 2 Dec 2026, 23:59 Madison time (Kaggle).
+**Next: the writeup** (deadline Wed 2 Dec 2026, 23:59 Madison time, Kaggle).
+The submission configuration is main at `52be238`, whose agent is the one in
+full runs 3–5. A PR that changes the agent needs a new full run before the
+estimate applies to it. Further experiments only if they touch many tasks and
+we can check that they actually fire (plan 33 is the best left). Plan item
+numbers are not PR numbers.
+Before long runs on the Windows laptop, see docs/setup-windows.md (the blue
+screen note).
 
 | # | Experiment | Question it answers | Owner |
 |---|---|---|---|
@@ -84,6 +88,11 @@ Deadline: Wed 2 Dec 2026, 23:59 Madison time (Kaggle).
 | 27 | Tell the model each command runs in a fresh shell (`cd` and env vars don't carry over) | From mini-swe-agent. Check transcripts for commands that failed on a lost `cd` first | |
 | 28 | Quiet env vars for commands: `PAGER=cat`, `PIP_PROGRESS_BAR=off`, `TQDM_DISABLE=1` | From mini-swe-agent. Check how much observation text progress bars take first | |
 | 29 | When output is cut, tell the model to use head/tail/grep or a file | From mini-swe-agent. Probably small | |
+| 30 | ~~Requirement checklist before finishing~~ | No: 20/39 with and without on the 13 tasks that most often finish wrong. It always ran, but its checks were looser than the graders'. Not merged (`ruoshi/feat-checklist-and-guard`) | ruoshi ✗ |
+| 31 | ~~Loop guard: remind instead of stopping after 8 failures in a row~~ | No measured gain: in batch 3 it never fired; in full run 5 it fired twice, both on trials that failed anyway. Not merged | ruoshi ✗ |
+| 32 | Stop on 8 failures in a row only when every output is the same | Full run 5's build-pov-ray broke its own container (`kill -9 -1`) and kept going. Idea only | |
+| 33 | Progress check every ~10 turns or after 3 identical failures: say what changed, else switch approach | 5 sometimes-solved tasks get stuck on one approach (10-20 analysis). Define how to tell it fired before running | |
+| 34 | Write the deliverable as soon as there's a plausible answer, then improve it | 3 sometimes-solved tasks think without ever writing the file (10-20 analysis) | |
 
 ## Phase 3 — LangGraph
 
