@@ -5,7 +5,59 @@ reasoning per turn, stored whole, resent every turn, the same truncated
 thought emitted nine times, 1.07M tokens spent, task timed out.
 """
 
-from agent.llm import REASONING_TAIL_CHARS, _tail
+import asyncio
+from types import SimpleNamespace
+
+from agent.llm import LLMClient, REASONING_TAIL_CHARS, _tail
+from agent.tools import parse_action
+
+
+def _chat(monkeypatch, content, reasoning, finish_reason):
+    monkeypatch.setenv("LLM_MODEL", "test-model")
+    monkeypatch.setenv("LLM_API_KEY", "test")
+    client = LLMClient()
+
+    async def request(*args):
+        return SimpleNamespace(
+            choices=[SimpleNamespace(
+                message=SimpleNamespace(content=content, reasoning_content=reasoning),
+                finish_reason=finish_reason,
+            )],
+            usage=SimpleNamespace(prompt_tokens=10, completion_tokens=5),
+        )
+
+    monkeypatch.setattr(client, "_request_with_retries", request)
+    text, usage = asyncio.run(client.chat([]))
+    return client, text, usage
+
+
+def test_truncated_content_is_returned_whole(monkeypatch):
+    content = "```bash\n" + ("echo line\n" * 400) + "```"
+    client, text, usage = _chat(monkeypatch, content, "```bash\necho draft\n```", "length")
+    assert text == content
+    assert parse_action(text).kind == "shell"
+    assert "echo line" in parse_action(text).command
+    assert client.last_truncated is True
+    assert client.reasoning_tail == ""
+    assert usage == {"prompt_tokens": 10, "completion_tokens": 5}
+
+
+def test_a_cut_off_thinking_scrap_is_not_an_action(monkeypatch):
+    reasoning = ("thinking " * 400) + "\n```bash\necho draft\n```"
+    client, text, _ = _chat(monkeypatch, None, reasoning, "length")
+    assert text == ""
+    assert parse_action(text).kind == "none"
+    assert client.last_truncated is True
+    assert client.reasoning_tail == _tail(reasoning, REASONING_TAIL_CHARS)
+    assert "echo draft" in client.reasoning_tail
+
+
+def test_finished_reasoning_is_not_kept_or_executed(monkeypatch):
+    client, text, _ = _chat(monkeypatch, "", "```bash\necho draft\n```", "stop")
+    assert text == ""
+    assert parse_action(text).kind == "none"
+    assert client.last_truncated is False
+    assert client.reasoning_tail == ""
 
 
 def test_short_response_is_left_alone():

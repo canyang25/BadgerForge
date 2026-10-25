@@ -62,7 +62,7 @@ from harbor.agents.base import BaseAgent
 from harbor.environments.base import BaseEnvironment
 from harbor.models.agent.context import AgentContext
 
-from agent.llm import LLMClient
+from agent.llm import LLMClient, REASONING_TAIL_CHARS, _tail
 from agent.loop_guard import LoopGuard
 from agent.prompts import (
     ACT_NUDGE_MESSAGE,
@@ -198,7 +198,16 @@ class BaselineAgent(BaseAgent):
                 "messages": messages,
             }
 
-            messages.append({"role": "assistant", "content": text})
+            # History gets the short tail of a cut-off reply. Parsing uses
+            # the full content, so a long finished command still runs, and a
+            # command that appears only in the thinking scrap does not.
+            if llm.last_truncated and text:
+                history_text = _tail(text, REASONING_TAIL_CHARS)
+            elif llm.last_truncated:
+                history_text = getattr(llm, "reasoning_tail", "")
+            else:
+                history_text = text
+            messages.append({"role": "assistant", "content": history_text})
 
             # 2. Parse the response into an action (see tools.py).
             action = parse_action(text)

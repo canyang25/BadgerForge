@@ -144,6 +144,9 @@ class LLMClient:
         # Whether the last reply hit max_tokens. The agent nudges a cut-off
         # reply differently from one that ended without a command.
         self.last_truncated = False
+        # Tail of a cut-off thought, kept for the conversation only. Commands
+        # are parsed from content, so a bash block in this tail never runs.
+        self.reasoning_tail = ""
         self._client = AsyncOpenAI(
             base_url=base_url, api_key=api_key, timeout=self.timeout, max_retries=0
         )
@@ -182,21 +185,21 @@ class LLMClient:
         text = message.content or ""
         truncated = response.choices[0].finish_reason == "length"
         self.last_truncated = truncated
-        if not text:
-            # Reasoning models stream thinking into `reasoning_content` and
-            # only fill `content` once the thinking closes. When generation
-            # hits max_tokens mid-thought, `content` is empty and all we have
-            # is an unfinished thought.
-            #
-            # We keep only its tail, and only so the model can see where it
-            # ran out of room. Storing the whole thing is what wrecked our
-            # baseline: 29k characters of unfinished reasoning per turn, resent
-            # on every later turn, with the model eventually emitting the same
-            # truncated thought nine times in a row.
+        self.reasoning_tail = ""
+        # Content is returned whole. A cut-off reply can hold a finished
+        # command longer than the tail we keep in history, and trimming here
+        # used to chop that command off before anyone parsed it.
+        #
+        # An empty content is a thought that never closed. The tail is kept
+        # on `reasoning_tail` so the model can see where it ran out of room,
+        # which is the September 30 fix: storing the whole thought resent
+        # 29k characters every turn until the same cut-off thought repeated
+        # and the task timed out. The tail is not copied into `text`, because
+        # a command found in it is almost always a fragment.
+        if truncated and not text:
             thinking = getattr(message, "reasoning_content", None) or ""
-            text = _tail(thinking, REASONING_TAIL_CHARS)
-        elif truncated:
-            text = _tail(text, REASONING_TAIL_CHARS)
+            if thinking:
+                self.reasoning_tail = _tail(thinking, REASONING_TAIL_CHARS)
         usage = {}
         if response.usage is not None:
             usage = {
