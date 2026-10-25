@@ -22,6 +22,7 @@ FIXTURE = Path(__file__).parent / "fixtures" / "job"
     (1.0, "AgentTimeoutError", None, "pass"),  # passed even though it hit the timeout
     (0.0, None, "no_action", "gave_up"),
     (None, "APIConnectionError", None, "gateway_failure"),
+    (None, "RateLimitError", None, "gateway_failure"),
 ])
 def test_outcome(reward, exception, stop, expected):
     assert export_trials.outcome(reward, exception, stop) == expected

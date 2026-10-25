@@ -85,6 +85,24 @@ def test_the_give_up_rule_is_unchanged(monkeypatch, tmp_path):
     assert context.metadata["commands_after_bump"] == 0
 
 
+def test_mentioning_completion_does_not_end_the_task(monkeypatch, tmp_path):
+    _, context = run(monkeypatch, tmp_path, [
+        ("I am not ready to say TASK_COMPLETE yet.", False),
+        (COMMAND, False),
+        (DONE, False),
+    ])
+    assert context.metadata["turns"] == 3
+    assert context.metadata["finished"] is True
+
+
+def test_a_task_complete_line_ends_the_task(monkeypatch, tmp_path):
+    _, context = run(monkeypatch, tmp_path, [
+        ("All tests pass.\n\nTASK_COMPLETE", False),
+    ])
+    assert context.metadata["turns"] == 1
+    assert context.metadata["finished"] is True
+
+
 @pytest.mark.parametrize("temperature", [None, 0.7])
 def test_llm_client_sends_the_override_only_when_given(monkeypatch, temperature):
     monkeypatch.setenv("LLM_MODEL", "qwen3.8-27b")
