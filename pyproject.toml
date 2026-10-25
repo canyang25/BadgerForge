@@ -5,6 +5,7 @@ description = "MLM26 Efficient Coder agent for Terminal-Bench 2.1 (via Harbor)"
 requires-python = ">=3.12"
 dependencies = [
     "harbor>=0.23",
+    "langgraph>=1.0",
     "openai>=1.40",
     "python-dotenv>=1.0",
     "pydantic>=2.0",
@@ -18,7 +19,7 @@ requires = ["setuptools>=68"]
 build-backend = "setuptools.build_meta"
 
 [tool.setuptools]
-packages = ["agent", "agent.prompts", "agent.tools", "eval"]
+packages = ["agent", "agent.graph", "agent.prompts", "agent.tools", "eval"]
 
 [tool.pytest.ini_options]
 # Only collect our own tests. test_prompt.py at the repo root is a hand-run

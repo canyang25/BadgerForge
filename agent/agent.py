@@ -25,6 +25,10 @@ This file implements ``BaselineAgent``, a minimal
     │  Repeat up to MAX_TURNS                        │
     └──────────────────────────────────────────────┘
 
+That loop is the LangGraph in ``agent/graph`` (``call_model``, ``nudge``,
+``guard``, ``execute``). The decisions are the ones drawn above.
+``context.metadata["node_trace"]`` records each node and the tokens it added.
+
 The agent **never touches your host filesystem** — it can only run commands
 inside the task's Docker container via ``environment.exec()``.
 
@@ -62,15 +66,12 @@ from harbor.agents.base import BaseAgent
 from harbor.environments.base import BaseEnvironment
 from harbor.models.agent.context import AgentContext
 
+from agent.graph import run_graph
+from agent.graph.context import GraphContext
 from agent.llm import LLMClient
 from agent.loop_guard import LoopGuard
-from agent.prompts import (
-    ACT_NUDGE_MESSAGE,
-    NUDGE_MESSAGE,
-    SYSTEM_PROMPT,
-    observation_message,
-)
-from agent.tools import parse_action, parse_exit_code, run_shell
+from agent.prompts import SYSTEM_PROMPT
+from agent.state import AgentState
 
 MAX_TURNS = int(os.environ.get("AGENT_MAX_TURNS", "100"))
 MAX_TURNS_WITHOUT_ACTION = int(os.environ.get("AGENT_MAX_TURNS_WITHOUT_ACTION", "4"))
@@ -158,108 +159,22 @@ class BaselineAgent(BaseAgent):
         # The conversation is a plain list of OpenAI-format message dicts.
         # The system prompt (from prompts.py) tells the LLM how to behave;
         # the first user message is the task instruction from Harbor.
+        # The graph updates ``context`` on every node, so a timeout still
+        # leaves partial token counts.
         messages = [
             {"role": "system", "content": SYSTEM_PROMPT},
             {"role": "user", "content": instruction},
         ]
-
-        guard = LoopGuard()
-        n_input = 0
-        n_output = 0
-        turns = 0
-        finished = False
-        turns_without_action = 0
-        stop_reason = None
-        stopped_by_guard = None
-        no_command_replies = 0
-        commands_after_bump = 0
-        next_temperature = None
-
-        for _ in range(MAX_TURNS):
-            turns += 1
-
-            # 1. Ask the LLM what to do next.
-            text, usage = await llm.chat(messages, temperature=next_temperature)
-            bumped = next_temperature is not None
-            next_temperature = None
-            n_input += usage.get("prompt_tokens", 0)
-            n_output += usage.get("completion_tokens", 0)
-
-            # Update context every turn (not just at the end) so that if
-            # Harbor kills us for a timeout, partial stats are still saved.
-            context.n_input_tokens = n_input
-            context.n_output_tokens = n_output
-            context.metadata = {
-                "turns": turns,
-                "finished": finished,
-                "stopped_by_guard": stopped_by_guard,
-                "no_command_replies": no_command_replies,
-                "commands_after_bump": commands_after_bump,
-                "messages": messages,
-            }
-
-            messages.append({"role": "assistant", "content": text})
-
-            # 2. Parse the response into an action (see tools.py).
-            action = parse_action(text)
-
-            if action.kind == "done":
-                finished = True
-                context.metadata["finished"] = True
-                break
-
-            if action.kind == "none":
-                # The LLM didn't produce a bash block or TASK_COMPLETE.
-                turns_without_action += 1
-                if not llm.last_truncated:
-                    no_command_replies += 1
-                    context.metadata["no_command_replies"] = no_command_replies
-                if turns_without_action >= MAX_TURNS_WITHOUT_ACTION:
-                    stop_reason = "no_action"
-                    context.metadata["stop_reason"] = stop_reason
-                    self.logger.info(
-                        "stopping after %d turns with no command", turns_without_action
-                    )
-                    break
-                if llm.last_truncated:
-                    # Out of budget mid-thought; the kept tail says so.
-                    messages.append({"role": "user", "content": NUDGE_MESSAGE})
-                else:
-                    # It finished a reply that announces a step instead of
-                    # taking it. Ask for the command itself, and sample the
-                    # next reply hotter so it can't repeat this one.
-                    next_temperature = NO_COMMAND_TEMPERATURE
-                    messages.append({"role": "user", "content": ACT_NUDGE_MESSAGE})
-                continue
-
-            turns_without_action = 0
-            if bumped:
-                commands_after_bump += 1
-                context.metadata["commands_after_bump"] = commands_after_bump
-
-            # 3. Ask the loop guard whether this command is worth running.
-            verdict = guard.before(action.command)
-            if not verdict.run:
-                self.logger.info("turn %d: refused repeat: %s", turns, action.command[:120])
-                messages.append({"role": "user", "content": verdict.note})
-                continue
-
-            # 4. Execute the command inside the task's Docker container.
-            self.logger.info("turn %d: %s", turns, action.command[:200])
-            observation = await run_shell(
-                environment, action.command, timeout_sec=COMMAND_TIMEOUT_SEC
-            )
-            after = guard.after(action.command, parse_exit_code(observation))
-
-            # 5. Feed the output back to the LLM as context for the next turn.
-            note = verdict.note or after.note
-            content = observation_message(observation)
-            if note:
-                content = f"{content}\n\n{note}"
-            messages.append({"role": "user", "content": content})
-
-            if after.stop:
-                stopped_by_guard = "consecutive_failures"
-                context.metadata["stopped_by_guard"] = stopped_by_guard
-                self.logger.info("stopping: %s", after.note)
-                break
+        await run_graph(
+            AgentState(messages=messages, guard=LoopGuard()),
+            GraphContext(
+                llm=llm,
+                environment=environment,
+                logger=self.logger,
+                harbor=context,
+                max_turns=MAX_TURNS,
+                max_turns_without_action=MAX_TURNS_WITHOUT_ACTION,
+                command_timeout_sec=COMMAND_TIMEOUT_SEC,
+                no_command_temperature=NO_COMMAND_TEMPERATURE,
+            ),
+        )
