@@ -32,18 +32,22 @@ class ScriptedLLM:
 
 
 class FakeEnvironment:
-    def __init__(self, return_code=0):
+    def __init__(self, return_code=0, stdout="ok", stderr=""):
         self.commands = []
         self.return_code = return_code
+        self.stdout = stdout
+        self.stderr = stderr
 
     async def exec(self, command, timeout_sec):
         self.commands.append(command)
-        return SimpleNamespace(stdout="ok", stderr="", return_code=self.return_code)
+        return SimpleNamespace(
+            stdout=self.stdout, stderr=self.stderr, return_code=self.return_code
+        )
 
 
-def run(monkeypatch, tmp_path, replies, return_code=0):
+def run(monkeypatch, tmp_path, replies, return_code=0, stdout="ok", stderr=""):
     llm = ScriptedLLM(replies)
-    env = FakeEnvironment(return_code=return_code)
+    env = FakeEnvironment(return_code=return_code, stdout=stdout, stderr=stderr)
     monkeypatch.setattr(agent_module, "LLMClient", lambda model_name=None: llm)
     context = AgentContext()
     agent = BaselineAgent(logs_dir=tmp_path)
@@ -55,9 +59,16 @@ def nodes(context):
     return [row["node"] for row in context.metadata["node_trace"]]
 
 
-def test_the_graph_is_the_four_loop_steps():
+def test_the_graph_is_the_loop_plus_the_two_optional_nodes():
     names = set(build_graph().nodes) - {"__start__"}
-    assert names == {"call_model", "nudge", "guard", "execute"}
+    assert names == {
+        "call_model",
+        "nudge",
+        "guard",
+        "execute",
+        "shape",
+        "progress",
+    }
 
 
 def test_a_command_after_a_preamble_visits_each_node_and_counts_tokens(
@@ -117,6 +128,87 @@ def test_eight_failures_in_a_row_stop_the_task(monkeypatch, tmp_path):
     assert len(llm.temperatures) == CONSECUTIVE_FAILURE_ABORT_AT
     assert context.metadata["stopped_by_guard"] == "consecutive_failures"
     assert context.metadata["finished"] is False
+
+
+def user_text(context):
+    return "\n".join(
+        message["content"] for message in context.metadata["messages"] if message["role"] == "user"
+    )
+
+
+def test_progress_and_shape_stay_off_unless_asked(monkeypatch, tmp_path):
+    replies = [(f"```bash\necho {i}\n```", False) for i in range(10)] + [(DONE, False)]
+    _, _, context = run(monkeypatch, tmp_path, replies, stdout="y" * 20_000)
+    assert "progress" not in nodes(context)
+    assert "shape" not in nodes(context)
+    assert "Progress check" not in user_text(context)
+    assert "That output was cut" not in user_text(context)
+
+
+def test_a_progress_check_lands_on_turn_10(monkeypatch, tmp_path):
+    monkeypatch.setattr(agent_module, "PROGRESS_CHECK", True)
+    replies = [(f"```bash\necho {i}\n```", False) for i in range(10)] + [(DONE, False)]
+    _, _, context = run(monkeypatch, tmp_path, replies)
+    fired = [row for row in context.metadata["node_trace"] if row["node"] == "progress"]
+    assert [row["turn"] for row in fired] == [10]
+    assert "Progress check" in user_text(context)
+    assert context.metadata["finished"] is True
+
+
+def test_three_identical_failures_ask_for_a_new_approach(monkeypatch, tmp_path):
+    monkeypatch.setattr(agent_module, "PROGRESS_CHECK", True)
+    _, _, context = run(
+        monkeypatch, tmp_path, [(COMMAND, False)] * 3 + [(DONE, False)], return_code=1
+    )
+    assert nodes(context).count("progress") == 1
+    assert "switch approach" in user_text(context)
+
+
+def test_two_failures_or_three_different_ones_do_not_ask(monkeypatch, tmp_path):
+    monkeypatch.setattr(agent_module, "PROGRESS_CHECK", True)
+    _, _, short = run(
+        monkeypatch, tmp_path, [(COMMAND, False)] * 2 + [(DONE, False)], return_code=1
+    )
+    different = [(f"```bash\ncmd{i}\n```", False) for i in range(3)] + [(DONE, False)]
+    _, _, varied = run(monkeypatch, tmp_path, different, return_code=1)
+    assert "progress" not in nodes(short)
+    assert "progress" not in nodes(varied)
+
+
+def test_a_cut_output_keeps_the_text_and_says_to_narrow_it(monkeypatch, tmp_path):
+    monkeypatch.setattr(agent_module, "OBSERVATION_SHAPE", True)
+    _, _, context = run(
+        monkeypatch, tmp_path, [(COMMAND, False), (DONE, False)], stdout="y" * 20_000
+    )
+    text = user_text(context)
+    assert "shape" in nodes(context)
+    assert "characters omitted" in text
+    assert "That output was cut" in text
+
+
+def test_a_binary_dump_is_replaced_with_a_short_summary(monkeypatch, tmp_path):
+    monkeypatch.setattr(agent_module, "OBSERVATION_SHAPE", True)
+    _, _, context = run(
+        monkeypatch, tmp_path, [(COMMAND, False), (DONE, False)], stdout="\x00" * 40
+    )
+    text = user_text(context)
+    assert "\x00" not in text
+    assert "binary" in text
+    assert "raw dump" in text
+
+
+def test_a_numeric_table_is_replaced_with_its_shape(monkeypatch, tmp_path):
+    monkeypatch.setattr(agent_module, "OBSERVATION_SHAPE", True)
+    row = "1.5 2.5 3.5 4.5 5.5"
+    _, _, context = run(
+        monkeypatch,
+        tmp_path,
+        [(COMMAND, False), (DONE, False)],
+        stdout="\n".join([row] * 12),
+    )
+    text = user_text(context)
+    assert "numeric table" in text
+    assert text.count(row) == 2
 
 
 def test_the_turn_cap_stops_the_graph(monkeypatch, tmp_path):

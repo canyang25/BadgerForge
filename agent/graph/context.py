@@ -24,3 +24,6 @@ class GraphContext:
     max_turns_without_action: int
     command_timeout_sec: int
     no_command_temperature: float
+    progress_check: bool = False
+    progress_every: int = 10
+    observation_shape: bool = False

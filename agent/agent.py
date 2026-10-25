@@ -58,6 +58,10 @@ Environment variables
 =====================
 - ``AGENT_MAX_TURNS``  — max reasoning/action cycles per task (default: 100).
 - ``AGENT_COMMAND_TIMEOUT_SEC`` — per-command timeout in seconds (default: 60).
+- ``AGENT_PROGRESS_CHECK`` — ``1`` inserts a progress check every
+  ``AGENT_PROGRESS_EVERY`` turns (default 10) and after 3 identical failures.
+- ``AGENT_OBSERVATION_SHAPE`` — ``1`` summarizes binary or numeric dumps and
+  tells the model when output was cut. Both are off unless set.
 """
 
 import os
@@ -90,6 +94,9 @@ APT_WAIT_COMMAND = (
     'done; [ "$busy" = 0 ] && exit 0; sleep 2; done; exit 0'
 )
 NO_COMMAND_TEMPERATURE = float(os.environ.get("AGENT_NO_COMMAND_TEMPERATURE", "0.7"))
+PROGRESS_CHECK = os.environ.get("AGENT_PROGRESS_CHECK", "") == "1"
+PROGRESS_EVERY = int(os.environ.get("AGENT_PROGRESS_EVERY", "10"))
+OBSERVATION_SHAPE = os.environ.get("AGENT_OBSERVATION_SHAPE", "") == "1"
 """Temperature for the request after a reply that ended without a command
 and wasn't cut off. Those replies announce a step ("Let's start by exploring
 the environment.") and never take it; the wording drifts, the decision not to
@@ -176,5 +183,8 @@ class BaselineAgent(BaseAgent):
                 max_turns_without_action=MAX_TURNS_WITHOUT_ACTION,
                 command_timeout_sec=COMMAND_TIMEOUT_SEC,
                 no_command_temperature=NO_COMMAND_TEMPERATURE,
+                progress_check=PROGRESS_CHECK,
+                progress_every=PROGRESS_EVERY,
+                observation_shape=OBSERVATION_SHAPE,
             ),
         )

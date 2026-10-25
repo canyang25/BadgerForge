@@ -31,4 +31,11 @@ class AgentState(BaseModel):
     command: str = ""
     before_note: str | None = None
     run_command: bool = False
+    observation: str = ""
+    observation_kind: str = ""
+    attached_note: str | None = None
+    identical_failures: int = 0
+    last_failed_command: str = ""
+    progress_at_turn: int = -1
+    progress_streak_mark: int = 0
     node_trace: list[dict] = Field(default_factory=list)
