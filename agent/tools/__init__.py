@@ -7,7 +7,7 @@ container. It handles two things:
    free-text response. The baseline protocol is intentionally simple so
    that even small local models (~7B) can follow it reliably:
    - A fenced ``bash`` code block → run that command in the container.
-   - The literal string ``TASK_COMPLETE`` → stop the loop.
+   - A line that is exactly ``TASK_COMPLETE`` → stop the loop.
    - Anything else → the LLM didn't follow the protocol; agent.py will
      send a nudge message asking it to try again.
 
@@ -83,7 +83,7 @@ def parse_action(text: str) -> Action:
     -------
     Action
         The parsed action. ``kind`` is ``"shell"`` if a bash block was found,
-        ``"done"`` if TASK_COMPLETE was found (and no code block), or
+        ``"done"`` if a line is exactly TASK_COMPLETE (and no code block), or
         ``"none"`` if neither was present.
     """
     match = CODE_BLOCK_RE.search(text)
@@ -91,7 +91,7 @@ def parse_action(text: str) -> Action:
         command = match.group(1).strip()
         if command:
             return Action("shell", command)
-    if DONE_MARKER in text:
+    if any(line.strip() == DONE_MARKER for line in text.splitlines()):
         return Action("done")
     return Action("none")
 

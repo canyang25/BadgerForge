@@ -97,6 +97,17 @@ def test_connection_failures_can_be_left_out(job):
     assert [t.trial_id for t in summary.infra_failures] == ["dropped__a"]
 
 
+def test_rate_limit_failures_are_reported_and_can_be_left_out(tmp_path):
+    write_trial(tmp_path, "normal__a")
+    write_trial(tmp_path, "limited__a", reward=None, exception="RateLimitError")
+    trials = load_trials(tmp_path)
+    summary = summarize(trials)
+    assert summary.tb_score == 0.5
+    assert [t.trial_id for t in summary.infra_failures] == ["limited__a"]
+    assert "RateLimitError" in format_table(summary)
+    assert summarize(trials, drop_infra=True).tb_score == 1.0
+
+
 def test_a_container_that_never_started_is_an_infrastructure_failure(tmp_path):
     # Batch 2 (2026-10-15) lost one trial per arm this way, hours into the run.
     write_trial(tmp_path, "normal__a")

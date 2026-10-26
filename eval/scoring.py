@@ -45,7 +45,8 @@ catches every trial from the known degraded windows and nothing from the
 healthy post-#8 runs."""
 
 INFRA_ERRORS = frozenset({
-    "APIConnectionError", "APITimeoutError", "InternalServerError", "EnvironmentStartTimeoutError",
+    "APIConnectionError", "APITimeoutError", "InternalServerError", "RateLimitError",
+    "EnvironmentStartTimeoutError",
 })
 """Exceptions that mean the gateway or the container start failed, not the agent."""
 
