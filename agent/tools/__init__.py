@@ -38,9 +38,12 @@ from dataclasses import dataclass
 
 from harbor.environments.base import BaseEnvironment
 
-CODE_BLOCK_RE = re.compile(r"```(?:bash|sh|shell)?\s*\n(.*?)```", re.DOTALL)
-"""Matches a Markdown fenced code block tagged as bash/sh/shell (or untagged).
-The captured group (1) is everything between the opening and closing fences."""
+CODE_BLOCK_RE = re.compile(
+    r"^[ \t]*(?P<fence>`{3,})(?P<language>[^`\r\n]*)\r?\n"
+    r"(?P<command>.*?)^[ \t]*(?P=fence)`*[ \t]*(?:\r?\n|$)",
+    re.DOTALL | re.MULTILINE,
+)
+"""Matches complete Markdown blocks with matching backtick fences."""
 
 DONE_MARKER = "TASK_COMPLETE"
 """The literal string the LLM must emit (outside a code block) to signal
@@ -86,9 +89,10 @@ def parse_action(text: str) -> Action:
         ``"done"`` if a line is exactly TASK_COMPLETE (and no code block), or
         ``"none"`` if neither was present.
     """
-    match = CODE_BLOCK_RE.search(text)
-    if match:
-        command = match.group(1).strip()
+    for match in CODE_BLOCK_RE.finditer(text):
+        if match.group("language").strip() not in ("", "bash", "sh", "shell"):
+            continue
+        command = match.group("command").strip()
         if command:
             return Action("shell", command)
     if any(line.strip() == DONE_MARKER for line in text.splitlines()):
