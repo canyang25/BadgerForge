@@ -3,6 +3,39 @@
 Newest first. One entry per run we want to remember: what changed, what the
 numbers were, what we learned. Numbers come from `scripts/score.py`.
 
+## 2026-10-29 — Early-deliverable checkpoint: two-task live smoke
+
+- Agent: `8360066` on `preston-test`; checkpoint off/on after turn five.
+  Three trials per task per arm, concurrency one. The only effective setting
+  difference was `AGENT_EARLY_DELIVERABLE`; progress and shaping stayed off.
+- Model: `qwen3.8-27b`, medium reasoning, temperature 0.2, 16,384 output tokens.
+- Apple Silicon, Docker Linux/amd64 emulation. Harbor 0.24.0, LangGraph 1.2.18,
+  OpenAI client 2.54.0. Dataset `7131e4375048a0e408a8fb404b5f499d726b695b`,
+  with unchanged tracked task files. This is a local smoke comparison.
+- Trial rows: `eval/results/graph-deliverable-control-20261029.csv` and
+  `eval/results/graph-deliverable-enabled-20261029.csv`. Token totals below
+  are input plus output over three trials; CSV seconds are agent execution.
+
+| Task | Control passes | Checkpoint passes | Control tokens | Checkpoint tokens | Checkpoint firings |
+|---|---:|---:|---:|---:|---:|
+| modernize-scientific-stack | 3/3 | 3/3 | 56,742 | 62,236 | 3 |
+| regex-log | 3/3 | 3/3 | 189,667 | 151,522 | 3 |
+
+Control passed 6/6 and the checkpoint arm 6/6. Total
+tokens were 246,409 and 213,758; summed agent execution was
+664.4 s and 596.5 s respectively.
+No trial exceptions occurred. Each firing is recorded in the node trace.
+
+**Keep the checkpoint off by default.** This smoke test shows no pass gain.
+The three enabled modernization runs wrote the main script on turns 4, 4,
+and 2, before the turn-five reminder. Treat token/time differences as
+descriptive: trials already diverged before the checkpoint fired. The first
+replies used 39,197 and 26,012 output tokens across six trials per arm, before
+the reminder could act. Two tasks with
+three trials each do not establish general score parity or efficacy.
+Next, select the intended no-artifact failures from transcripts before a
+larger x86 comparison. No full 89-task score is inferred from this run.
+
 ## 2026-10-22 — Full run 5: 49/89; estimate for main 48.3/89
 
 - Code: `ruoshi/feat-checklist-and-guard` (`f82c570`), main's agent plus two
