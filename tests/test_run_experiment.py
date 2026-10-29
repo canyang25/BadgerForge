@@ -3,12 +3,14 @@
 import json
 import os
 from pathlib import Path
+import shutil
 import subprocess
 import sys
 
 import pytest
 
 LAUNCHER = Path(__file__).parent.parent / "scripts/run_experiment.sh"
+REAL_GIT = shutil.which("git")
 
 
 @pytest.fixture
@@ -16,7 +18,11 @@ def runner(tmp_path):
     binaries = tmp_path / "bin"
     binaries.mkdir()
     git = binaries / "git"
-    git.write_text('#!/bin/sh\nif [ "$1" = rev-parse ]; then echo commit123; else printf "%s" "${TEST_DIRTY:-}"; fi\n')
+    git.write_text(
+        '#!/bin/sh\n'
+        'if [ "$PWD" = "$TB_TASKS" ]; then exec "$TEST_REAL_GIT" "$@"; fi\n'
+        'if [ "$1" = rev-parse ]; then echo commit123; else printf "%s" "${TEST_DIRTY:-}"; fi\n'
+    )
     git.chmod(0o755)
     harbor = binaries / "harbor"
     harbor.write_text(
@@ -36,7 +42,8 @@ def runner(tmp_path):
         "AGENT_EARLY_DELIVERABLE=1\nAGENT_DELIVERABLE_TURN=42\n"
     )
     environment = {**os.environ, "PATH": f"{binaries}:{os.environ['PATH']}",
-                   "ENV_FILE": str(env_file), "TB_TASKS": str(dataset),
+                   "ENV_FILE": str(env_file), "TB_TASKS": str(dataset.resolve()),
+                   "TEST_REAL_GIT": REAL_GIT,
                    "BF_PYTHON": sys.executable, "HARBOR_RECORD": str(tmp_path / "record")}
 
     def run(profile="control", extra=(), **overrides):
@@ -122,3 +129,51 @@ def test_invalid_or_duplicate_task_names_do_not_start_harbor(runner, tmp_path, t
 def test_invalid_counts_do_not_start_harbor(runner, tmp_path, arguments):
     assert runner(extra=arguments).returncode != 0
     assert not (tmp_path / "record").exists()
+
+
+def version_dataset(tmp_path):
+    dataset = tmp_path / "task data"
+    (dataset / "regex-log/input.txt").write_text("original\n")
+    for args in [("init", "-q"), ("config", "user.name", "Test"),
+                 ("config", "user.email", "test@example.invalid"),
+                 ("config", "commit.gpgsign", "false"), ("add", "."),
+                 ("commit", "-qm", "dataset")]:
+        subprocess.run([REAL_GIT, *args], cwd=dataset, check=True, capture_output=True)
+    return subprocess.check_output([REAL_GIT, "rev-parse", "HEAD"], cwd=dataset, text=True).strip()
+
+
+def test_manifest_records_the_actual_dataset_revision(runner, tmp_path):
+    revision = version_dataset(tmp_path)
+    result = runner()
+    assert result.returncode == 0, result.stderr
+    info = json.loads((tmp_path / "job/experiment.json").read_text())["dataset"]
+    assert info == {"path": str((tmp_path / "task data").resolve()),
+                    "commit": revision, "selected_tasks_dirty": False}
+
+
+@pytest.mark.parametrize("changed", ["input.txt", "untracked.txt"])
+def test_changed_selected_tasks_require_an_explicit_smoke_test(runner, tmp_path, changed):
+    version_dataset(tmp_path)
+    (tmp_path / "task data/regex-log" / changed).write_text("changed\n")
+    result = runner()
+    assert result.returncode != 0 and "selected task files are dirty" in result.stderr
+    assert not (tmp_path / "record").exists()
+    assert not (tmp_path / "job").exists()
+    result = runner(extra=["--allow-dirty"])
+    assert result.returncode == 0, result.stderr
+    assert json.loads((tmp_path / "job/experiment.json").read_text())["dataset"]["selected_tasks_dirty"] is True
+
+
+def test_changes_outside_the_selected_tasks_do_not_block_a_run(runner, tmp_path):
+    version_dataset(tmp_path)
+    (tmp_path / "task data/.DS_Store").write_text("unrelated\n")
+    result = runner()
+    assert result.returncode == 0, result.stderr
+    assert json.loads((tmp_path / "job/experiment.json").read_text())["dataset"]["selected_tasks_dirty"] is False
+
+
+def test_unversioned_dataset_is_recorded_as_unknown(runner, tmp_path):
+    result = runner()
+    assert result.returncode == 0, result.stderr
+    info = json.loads((tmp_path / "job/experiment.json").read_text())["dataset"]
+    assert info["commit"] is None and info["selected_tasks_dirty"] is None

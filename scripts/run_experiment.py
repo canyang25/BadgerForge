@@ -41,6 +41,24 @@ def positive(value):
     return number
 
 
+def dataset_provenance(dataset, tasks):
+    """Record the dataset revision and changes affecting only this task slice."""
+    result = subprocess.run(["git", "rev-parse", "HEAD"], cwd=dataset,
+                            capture_output=True, text=True)
+    info = {"path": str(dataset), "commit": None, "selected_tasks_dirty": None}
+    if result.returncode:
+        return info
+    info["commit"] = result.stdout.strip()
+    status = subprocess.run(
+        ["git", "status", "--porcelain", "--untracked-files=all", "--", *tasks],
+        cwd=dataset, capture_output=True, text=True,
+    )
+    if status.returncode:
+        raise ValueError("could not check selected task files in the dataset repository")
+    info["selected_tasks_dirty"] = bool(status.stdout)
+    return info
+
+
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("profile", choices=PROFILES)
@@ -49,7 +67,7 @@ def main(argv=None):
     parser.add_argument("--trials", type=positive, default=3)
     parser.add_argument("--concurrency", type=positive, default=2)
     parser.add_argument("--dry-run", action="store_true", help="preview without loading credentials or writing files")
-    parser.add_argument("--allow-dirty", action="store_true", help="record a dirty checkout for a local smoke test")
+    parser.add_argument("--allow-dirty", action="store_true", help="allow changed agent or task files for a local smoke test")
     args = parser.parse_args(argv)
     try:
         return launch(args)
@@ -78,6 +96,9 @@ def launch(args):
     dirty = bool(subprocess.check_output(["git", "status", "--porcelain"], cwd=ROOT, text=True))
     if dirty and not args.dry_run and not args.allow_dirty:
         raise ValueError("checkout is dirty; commit changes or use --allow-dirty for a smoke test")
+    dataset_info = dataset_provenance(dataset, tasks)
+    if dataset_info["selected_tasks_dirty"] and not args.dry_run and not args.allow_dirty:
+        raise ValueError("selected task files are dirty; commit them or use --allow-dirty for a smoke test")
     environment = {**os.environ, **BASE_FLAGS, **PROFILES[args.profile]}
     settings = {**{key: environment.get(key, default) for key, default in MODEL_DEFAULTS.items()},
                 **{key: environment[key] for key in BASE_FLAGS}}
@@ -87,6 +108,7 @@ def launch(args):
     command.extend(["--agent", "agent.agent:BaselineAgent", "-k", str(args.trials),
                     "-n", str(args.concurrency), "-o", str(job)])
     manifest = {"profile": args.profile, "commit": commit, "dirty": dirty,
+                "dataset": dataset_info,
                 "tasks": tasks, "settings": settings, "command": command,
                 "trials": args.trials, "concurrency": args.concurrency, "status": "planned"}
     if args.dry_run:
