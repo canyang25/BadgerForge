@@ -42,6 +42,22 @@ def make_job(tmp_path, config):
     return inner
 
 
+def test_resume_retries_rate_limit_failures(tmp_path):
+    inner = make_job(tmp_path, {"job_name": "2026-10-15__15-23-55"})
+    r, args = resume(tmp_path, inner)
+    assert r.returncode == 0, r.stderr
+    assert "RateLimitError" in args
+    for name in (
+        "CancelledError",
+        "APIConnectionError",
+        "APITimeoutError",
+        "InternalServerError",
+        "AuthenticationError",
+        "EnvironmentStartTimeoutError",
+    ):
+        assert name in args
+
+
 def test_adds_the_missing_job_name_before_resuming(tmp_path):
     inner = make_job(tmp_path, {"jobs_dir": "jobs/full-20261015-1523", "n_attempts": 3})
     r, args = resume(tmp_path, inner.parent)
