@@ -1,0 +1,7 @@
+task,trial_id,reward,outcome,turns,input_tokens,output_tokens,seconds,exception,stop_reason,deliverable_checks,agent_commit,first_reply_output_tokens
+modernize-scientific-stack,modernize-scientific-stack__3YkyAu2,1.0,pass,8,18700,1536,14.0,,,1,83600663635851baaa57dd2799c6ae045da1bf48,38
+modernize-scientific-stack,modernize-scientific-stack__8k4YCw5,1.0,pass,7,20810,1521,14.6,,,1,83600663635851baaa57dd2799c6ae045da1bf48,85
+modernize-scientific-stack,modernize-scientific-stack__XEBxVJY,1.0,pass,8,18212,1457,13.5,,,1,83600663635851baaa57dd2799c6ae045da1bf48,38
+regex-log,regex-log__6AdNpPT,1.0,pass,11,25080,25652,190.9,,,1,83600663635851baaa57dd2799c6ae045da1bf48,9844
+regex-log,regex-log__9jGEoj4,1.0,pass,10,24105,25270,187.0,,,1,83600663635851baaa57dd2799c6ae045da1bf48,7685
+regex-log,regex-log__Ww54zRm,1.0,pass,10,27340,24075,176.4,,,1,83600663635851baaa57dd2799c6ae045da1bf48,8322
