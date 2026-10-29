@@ -121,6 +121,17 @@ three trials per task, and report score, tokens, time, and gateway health.
 Inspect feature activations before attributing a result to an experiment.
 Validate a promising configuration on all 89 tasks before replacing the loop.
 
+Next extensions, each measured separately:
+
+- Add a launcher for control, progress, higher-turn-cap, and shaping arms.
+  Apply flags after loading gateway settings and save the commit, task list,
+  and selected non-secret settings with each job. Dry runs must not contact
+  the model or resolve credentials.
+- Test plan 34 as an optional checkpoint: after a configurable early turn,
+  ask for the simplest plausible deliverable before further refinement.
+  Record when it fires, keep it off by default, and measure time to the first
+  artifact as well as final reward before adopting it.
+
 - Port the existing loop to LangGraph with no behaviour change, and confirm
   it matches the current numbers
 - Observability: logging and tracing per node, so we can see where tokens go
