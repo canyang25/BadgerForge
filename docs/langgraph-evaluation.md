@@ -23,6 +23,26 @@ without losing readable diagnostics. Check the built wheel includes all
 
 ## Controlled benchmark runs
 
+Use the controlled launcher for graph arms:
+
+```bash
+bash scripts/run_experiment.sh control jobs/graph-control --dry-run
+bash scripts/run_experiment.sh control jobs/graph-control
+bash scripts/run_experiment.sh progress jobs/graph-progress
+bash scripts/run_experiment.sh turns150 jobs/graph-turns150
+bash scripts/run_experiment.sh shaping jobs/graph-shaping
+```
+
+The launcher defaults to the 10-task slice, three trials, and concurrency two.
+Pass task names after the job directory to select another subset. It loads
+gateway settings before applying the profile, so flags in the gateway file
+cannot accidentally enable another arm. `--dry-run` previews the command and
+flags using the current environment without resolving credentials or writing
+files. Real runs save `experiment.json` beside the job with the commit,
+selected non-secret settings, command, and exit status. Existing output
+directories are rejected. Real runs require a clean checkout; `--allow-dirty`
+is available for an explicitly labeled local smoke test.
+
 Use the x86 Windows/WSL2 environment described in `docs/setup-windows.md`,
 with Docker running and gateway access configured through `.env.op.local`.
 Set `TB_TASKS` to the Terminal-Bench task directory on that machine. Keep
