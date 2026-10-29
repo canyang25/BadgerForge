@@ -7,6 +7,7 @@ is how we see which node spent the tokens.
 import asyncio
 from types import SimpleNamespace
 
+import pytest
 from harbor.models.agent.context import AgentContext
 
 import agent.agent as agent_module
@@ -151,17 +152,37 @@ def test_a_progress_check_lands_on_turn_10(monkeypatch, tmp_path):
     _, _, context = run(monkeypatch, tmp_path, replies)
     fired = [row for row in context.metadata["node_trace"] if row["node"] == "progress"]
     assert [row["turn"] for row in fired] == [10]
+    assert fired[0]["reasons"] == ["periodic"]
+    assert fired[0]["progress_every"] == 10
+    assert fired[0]["identical_failures"] == 0
     assert "Progress check" in user_text(context)
     assert context.metadata["finished"] is True
 
 
-def test_three_identical_failures_ask_for_a_new_approach(monkeypatch, tmp_path):
+@pytest.mark.parametrize("interval", [10, 0])
+def test_three_identical_failures_ask_for_a_new_approach(monkeypatch, tmp_path, interval):
     monkeypatch.setattr(agent_module, "PROGRESS_CHECK", True)
+    monkeypatch.setattr(agent_module, "PROGRESS_EVERY", interval)
     _, _, context = run(
         monkeypatch, tmp_path, [(COMMAND, False)] * 3 + [(DONE, False)], return_code=1
     )
     assert nodes(context).count("progress") == 1
     assert "switch approach" in user_text(context)
+    fired = [row for row in context.metadata["node_trace"] if row["node"] == "progress"]
+    assert fired[0]["reasons"] == ["identical_failures"]
+    assert fired[0]["identical_failures"] == 3
+
+
+def test_one_progress_event_records_both_triggers(monkeypatch, tmp_path):
+    monkeypatch.setattr(agent_module, "PROGRESS_CHECK", True)
+    monkeypatch.setattr(agent_module, "PROGRESS_EVERY", 3)
+    _, _, context = run(
+        monkeypatch, tmp_path, [(COMMAND, False)] * 3 + [(DONE, False)], return_code=1
+    )
+    fired = [row for row in context.metadata["node_trace"] if row["node"] == "progress"]
+    assert len(fired) == 1
+    assert fired[0]["reasons"] == ["periodic", "identical_failures"]
+    assert user_text(context).count("Progress check.") == 1
 
 
 def test_two_failures_or_three_different_ones_do_not_ask(monkeypatch, tmp_path):
