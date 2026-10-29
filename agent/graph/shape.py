@@ -4,6 +4,8 @@ Off unless ``AGENT_OBSERVATION_SHAPE=1``. Plan 8: summarize a binary or numeric
 dump in code. Plan 29: when output is cut, say to use head, tail, grep, or a file.
 """
 
+import re
+
 from langgraph.runtime import Runtime
 
 from agent.graph.context import GraphContext
@@ -13,6 +15,9 @@ from agent.state import AgentState
 
 _NUMERIC_ROWS = 8
 _NONTEXT = 16
+_ANSI_ESCAPE = re.compile(
+    r"\x1b(?:\[[0-?]*[ -/]*[@-~]|\][^\x07\x1b]*(?:\x07|\x1b\\)|[@-_])"
+)
 
 
 def classify_observation(observation: str) -> str:
@@ -45,19 +50,27 @@ def shape_message(
 
 
 def _looks_binary(observation: str) -> bool:
-    if "\x00" in observation:
+    text = _ANSI_ESCAPE.sub("", observation)
+    if "\x00" in text:
         return True
-    nontext = sum(1 for char in observation if ord(char) < 32 and char not in "\n\r\t")
-    return nontext >= _NONTEXT
+    return _nontext_count(text) >= _NONTEXT
+
+
+def _nontext_count(text: str) -> int:
+    return sum(1 for char in text if ord(char) < 32 and char not in "\n\r\t")
 
 
 def _looks_matrix(observation: str) -> bool:
-    rows = [line for line in _stdout(observation).splitlines() if _numeric_row(line)]
-    return len(rows) >= _NUMERIC_ROWS
+    run = 0
+    for line in _stdout(observation).splitlines():
+        run = run + 1 if _numeric_row(line) else 0
+        if run >= _NUMERIC_ROWS:
+            return True
+    return False
 
 
 def _numeric_row(line: str) -> bool:
-    parts = line.split()
+    parts = _ANSI_ESCAPE.sub("", line).split()
     if len(parts) < 4:
         return False
     numbers = 0
@@ -71,12 +84,18 @@ def _numeric_row(line: str) -> bool:
 
 
 def _stdout(observation: str) -> str:
-    if "stdout:\n" not in observation:
-        return ""
-    rest = observation.split("stdout:\n", 1)[1]
-    if "\nstderr:\n" in rest:
-        rest = rest.split("\nstderr:\n", 1)[0]
-    return rest
+    return _streams(observation)[0]
+
+
+def _streams(observation: str) -> tuple[str, str]:
+    """Read the stream labels emitted by run_shell without dropping either."""
+    _, _, body = observation.partition("\n")
+    if body.startswith("stdout:\n"):
+        stdout, _, stderr = body[len("stdout:\n"):].partition("\nstderr:\n")
+        return stdout, stderr
+    if body.startswith("stderr:\n"):
+        return "", body[len("stderr:\n"):]
+    return body, ""
 
 
 def _exit_line(observation: str) -> str:
@@ -87,26 +106,72 @@ def _exit_line(observation: str) -> str:
 
 
 def _summary(observation: str, kind: str) -> str:
-    exit_line = _exit_line(observation)
-    if kind == "binary":
-        nontext = sum(
-            1 for char in observation if ord(char) < 32 and char not in "\n\r\t"
-        )
-        return (
-            f"{exit_line}\n"
-            f"stdout/stderr look like binary data ({len(observation)} characters, "
-            f"{nontext} non-text). Not shown."
-        )
-    rows = [line for line in _stdout(observation).splitlines() if _numeric_row(line)]
-    first = rows[0][:120] if rows else ""
-    last = rows[-1][:120] if rows else ""
-    cols = len(first.split()) if first else 0
+    parts = [_exit_line(observation)]
+    for name, text in zip(("stdout", "stderr"), _streams(observation)):
+        if not text:
+            continue
+        if _looks_binary(text):
+            text = _summarize_binary(text)
+        if name == "stdout" and kind == "matrix":
+            text = _summarize_tables(text)
+        parts.append(f"{name}:\n{text}")
+    return "\n".join(parts)
+
+
+def _summarize_binary(text: str) -> str:
+    """Suppress binary lines while retaining adjacent readable diagnostics."""
+    output = []
+    binary = []
+    for line in text.splitlines(keepends=True):
+        clean = _ANSI_ESCAPE.sub("", line)
+        if _nontext_count(clean):
+            binary.append(line)
+        else:
+            output.append(_binary_summary(binary))
+            binary = []
+            output.append(line)
+    output.append(_binary_summary(binary))
+    return "".join(output)
+
+
+def _binary_summary(lines: list[str]) -> str:
+    if not lines:
+        return ""
+    text = "".join(lines)
+    nontext = _nontext_count(_ANSI_ESCAPE.sub("", text))
+    suffix = "\n" if text.endswith("\n") else ""
     return (
-        f"{exit_line}\n"
-        f"stdout looks like a numeric table: {len(rows)} rows, about {cols} columns.\n"
-        f"First row: {first}\n"
-        f"Last row: {last}\n"
-        "The full table was not sent."
+        f"[binary data: {len(text)} characters, {nontext} non-text; not shown]"
+        f"{suffix}"
+    )
+
+
+def _summarize_tables(text: str) -> str:
+    """Replace contiguous numeric runs, preserving labels and other text."""
+    output = []
+    rows = []
+    for line in text.splitlines(keepends=True):
+        if _numeric_row(line):
+            rows.append(line)
+        else:
+            output.append(_table_summary(rows))
+            rows = []
+            output.append(line)
+    output.append(_table_summary(rows))
+    return "".join(output)
+
+
+def _table_summary(rows: list[str]) -> str:
+    if len(rows) < _NUMERIC_ROWS:
+        return "".join(rows)
+    first = rows[0].rstrip("\r\n")[:120]
+    last = rows[-1].rstrip("\r\n")[:120]
+    cols = len(_ANSI_ESCAPE.sub("", rows[0]).split())
+    suffix = "\n" if rows[-1].endswith("\n") else ""
+    return (
+        f"[numeric table: {len(rows)} rows, about {cols} columns]\n"
+        f"First row: {first}\nLast row: {last}\n"
+        f"The full table was not sent.{suffix}"
     )
 
 
