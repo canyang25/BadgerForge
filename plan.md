@@ -100,6 +100,27 @@ Rebuild the loop as a graph once Phase 2 stops moving the numbers. The
 current agent's score is the bar the graph version has to clear before it
 replaces it.
 
+Readiness work on `preston-test`, in separate PRs
+([file claims and tracking](https://github.com/canyang25/BadgerForge/issues/40)):
+
+1. Sync `main` before measuring parity: keep complete command fences,
+   standalone completion markers, packaged prompt Markdown, and current
+   gateway/resume reporting while retaining the LangGraph package.
+2. Preserve stderr and surrounding text when shaping numeric or binary
+   output. Colored terminal messages must remain readable. Both optional
+   nodes stay off by default.
+3. Test cancellation during a model request and container execution. Harbor
+   must retain completed turns, token usage, messages, and node traces.
+4. Record why each progress check fired and document the controlled runs:
+   graph parity first, progress checks second, then a higher turn cap and
+   output shaping as separate experiments.
+
+Unit tests establish local correctness; they do not establish score parity.
+Compare the current loop and graph with identical settings on the dev slice,
+three trials per task, and report score, tokens, time, and gateway health.
+Inspect feature activations before attributing a result to an experiment.
+Validate a promising configuration on all 89 tasks before replacing the loop.
+
 - Port the existing loop to LangGraph with no behaviour change, and confirm
   it matches the current numbers
 - Observability: logging and tracing per node, so we can see where tokens go
