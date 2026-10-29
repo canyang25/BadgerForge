@@ -17,5 +17,7 @@ than a claim that the inputs are clean. Such a run is allowed, but matching
 paths do not prove matching content. This metadata describes inputs at startup;
 keep the task checkout unchanged until every arm has finished.
 
-This change is separate from agent behavior. For selective main promotion it
-requires only the standalone launcher port `8f5c060`, with no graph experiment.
+This change is separate from agent behavior. Its integration commit is
+`0dd5be1`, with the controlled launcher as its prerequisite and no graph
+experiment required. Prepare any legacy launcher documentation context in the
+temporary destination PR; see [the selective-commit workflow](promoting-changes.md).
