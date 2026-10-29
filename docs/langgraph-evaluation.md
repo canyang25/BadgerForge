@@ -31,6 +31,7 @@ bash scripts/run_experiment.sh control jobs/graph-control
 bash scripts/run_experiment.sh progress jobs/graph-progress
 bash scripts/run_experiment.sh turns150 jobs/graph-turns150
 bash scripts/run_experiment.sh shaping jobs/graph-shaping
+bash scripts/run_experiment.sh deliverable jobs/graph-deliverable
 ```
 
 The launcher defaults to the 10-task slice, three trials, and concurrency two.
@@ -42,6 +43,16 @@ files. Real runs save `experiment.json` beside the job with the commit,
 selected non-secret settings, command, and exit status. Existing output
 directories are rejected. Real runs require a clean checkout; `--allow-dirty`
 is available for an explicitly labeled local smoke test.
+
+The `deliverable` arm enables plan 34's checkpoint after turn five. It asks
+for a plausible first artifact once, after an executed command, and uses the
+next ordinary model turn. Early completion, commandless replies, refused
+commands, and the turn cap keep their existing behavior. Set
+`AGENT_EARLY_DELIVERABLE=1` and `AGENT_DELIVERABLE_TURN=<turn>` for manual
+runs; a nonpositive turn disables the checkpoint. The launcher pins turn five
+and keeps this flag off for every other profile. Inspect the `deliverable`
+trace row and following commands, then measure time to the first valid
+artifact and final reward. No score benefit has been established yet.
 
 Use the x86 Windows/WSL2 environment described in `docs/setup-windows.md`,
 with Docker running and gateway access configured through `.env.op.local`.

@@ -27,3 +27,5 @@ class GraphContext:
     progress_check: bool = False
     progress_every: int = 10
     observation_shape: bool = False
+    early_deliverable: bool = False
+    deliverable_turn: int = 5

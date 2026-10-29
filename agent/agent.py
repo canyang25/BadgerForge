@@ -62,6 +62,8 @@ Environment variables
   ``AGENT_PROGRESS_EVERY`` turns (default 10) and after 3 identical failures.
 - ``AGENT_OBSERVATION_SHAPE`` — ``1`` summarizes binary or numeric dumps and
   tells the model when output was cut. Both are off unless set.
+- ``AGENT_EARLY_DELIVERABLE`` — ``1`` asks for a first plausible deliverable
+  after ``AGENT_DELIVERABLE_TURN`` (default 5). Off unless set.
 """
 
 import os
@@ -97,6 +99,8 @@ NO_COMMAND_TEMPERATURE = float(os.environ.get("AGENT_NO_COMMAND_TEMPERATURE", "0
 PROGRESS_CHECK = os.environ.get("AGENT_PROGRESS_CHECK", "") == "1"
 PROGRESS_EVERY = int(os.environ.get("AGENT_PROGRESS_EVERY", "10"))
 OBSERVATION_SHAPE = os.environ.get("AGENT_OBSERVATION_SHAPE", "") == "1"
+EARLY_DELIVERABLE = os.environ.get("AGENT_EARLY_DELIVERABLE", "") == "1"
+DELIVERABLE_TURN = int(os.environ.get("AGENT_DELIVERABLE_TURN", "5"))
 """Temperature for the request after a reply that ended without a command
 and wasn't cut off. Those replies announce a step ("Let's start by exploring
 the environment.") and never take it; the wording drifts, the decision not to
@@ -186,5 +190,7 @@ class BaselineAgent(BaseAgent):
                 progress_check=PROGRESS_CHECK,
                 progress_every=PROGRESS_EVERY,
                 observation_shape=OBSERVATION_SHAPE,
+                early_deliverable=EARLY_DELIVERABLE,
+                deliverable_turn=DELIVERABLE_TURN,
             ),
         )

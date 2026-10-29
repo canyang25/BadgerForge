@@ -60,7 +60,7 @@ def nodes(context):
     return [row["node"] for row in context.metadata["node_trace"]]
 
 
-def test_the_graph_is_the_loop_plus_the_two_optional_nodes():
+def test_the_graph_is_the_loop_plus_the_optional_nodes():
     names = set(build_graph().nodes) - {"__start__"}
     assert names == {
         "call_model",
@@ -69,6 +69,7 @@ def test_the_graph_is_the_loop_plus_the_two_optional_nodes():
         "execute",
         "shape",
         "progress",
+        "deliverable",
     }
 
 
@@ -142,8 +143,10 @@ def test_progress_and_shape_stay_off_unless_asked(monkeypatch, tmp_path):
     _, _, context = run(monkeypatch, tmp_path, replies, stdout="y" * 20_000)
     assert "progress" not in nodes(context)
     assert "shape" not in nodes(context)
+    assert "deliverable" not in nodes(context)
     assert "Progress check" not in user_text(context)
     assert "That output was cut" not in user_text(context)
+    assert "Early deliverable checkpoint." not in user_text(context)
 
 
 def test_a_progress_check_lands_on_turn_10(monkeypatch, tmp_path):
@@ -239,3 +242,83 @@ def test_the_turn_cap_stops_the_graph(monkeypatch, tmp_path):
     assert len(env.commands) == 2
     assert context.metadata["turns"] == 2
     assert context.metadata["finished"] is False
+
+
+def test_early_deliverable_fires_once_without_an_extra_model_call(monkeypatch, tmp_path):
+    monkeypatch.setattr(agent_module, "EARLY_DELIVERABLE", True)
+    monkeypatch.setattr(agent_module, "DELIVERABLE_TURN", 3)
+    replies = [(f"```bash\necho {i}\n```", False) for i in range(7)] + [(DONE, False)]
+    llm, env, context = run(monkeypatch, tmp_path, replies)
+    events = [row for row in context.metadata["node_trace"] if row["node"] == "deliverable"]
+    assert len(events) == 1
+    assert events[0]["turn"] == events[0]["scheduled_turn"] == 3
+    assert user_text(context).count("Early deliverable checkpoint.") == 1
+    assert len(llm.temperatures) == 8
+    assert len(env.commands) == 7
+    assert context.metadata["finished"] is True
+
+
+def test_early_completion_is_not_intercepted(monkeypatch, tmp_path):
+    monkeypatch.setattr(agent_module, "EARLY_DELIVERABLE", True)
+    _, _, context = run(monkeypatch, tmp_path, [(COMMAND, False), (DONE, False)])
+    assert "deliverable" not in nodes(context)
+    assert context.metadata["finished"] is True
+
+
+def test_early_deliverable_never_runs_after_the_turn_budget(monkeypatch, tmp_path):
+    monkeypatch.setattr(agent_module, "EARLY_DELIVERABLE", True)
+    monkeypatch.setattr(agent_module, "DELIVERABLE_TURN", 2)
+    monkeypatch.setattr(agent_module, "MAX_TURNS", 2)
+    llm, env, context = run(monkeypatch, tmp_path, [(COMMAND, False)] * 2)
+    assert "deliverable" not in nodes(context)
+    assert len(llm.temperatures) == len(env.commands) == 2
+
+
+def test_deliverable_and_progress_can_fire_together_without_looping(monkeypatch, tmp_path):
+    monkeypatch.setattr(agent_module, "EARLY_DELIVERABLE", True)
+    monkeypatch.setattr(agent_module, "DELIVERABLE_TURN", 3)
+    monkeypatch.setattr(agent_module, "PROGRESS_CHECK", True)
+    monkeypatch.setattr(agent_module, "PROGRESS_EVERY", 3)
+    llm, _, context = run(monkeypatch, tmp_path, [(COMMAND, False)] * 3 + [(DONE, False)])
+    optional = [node for node in nodes(context) if node in ("deliverable", "progress")]
+    assert optional == ["deliverable", "progress"]
+    assert len(llm.temperatures) == 4
+
+
+def test_refused_commands_do_not_trigger_early_deliverable(monkeypatch, tmp_path):
+    monkeypatch.setattr(agent_module, "EARLY_DELIVERABLE", True)
+    monkeypatch.setattr(agent_module, "DELIVERABLE_TURN", 4)
+    _, env, context = run(monkeypatch, tmp_path, [(COMMAND, False)] * 4 + [(DONE, False)])
+    assert len(env.commands) == 3
+    assert "deliverable" not in nodes(context)
+
+
+def test_commandless_turns_do_not_trigger_early_deliverable(monkeypatch, tmp_path):
+    monkeypatch.setattr(agent_module, "EARLY_DELIVERABLE", True)
+    monkeypatch.setattr(agent_module, "DELIVERABLE_TURN", 1)
+    _, _, context = run(monkeypatch, tmp_path, [(PREAMBLE, False)] * 4)
+    assert "deliverable" not in nodes(context)
+    assert context.metadata["stop_reason"] == "no_action"
+
+
+@pytest.mark.parametrize("threshold", [0, -1])
+def test_nonpositive_deliverable_turn_disables_the_checkpoint(monkeypatch, tmp_path, threshold):
+    monkeypatch.setattr(agent_module, "EARLY_DELIVERABLE", True)
+    monkeypatch.setattr(agent_module, "DELIVERABLE_TURN", threshold)
+    _, _, context = run(monkeypatch, tmp_path, [(COMMAND, False)] * 3 + [(DONE, False)])
+    assert "deliverable" not in nodes(context)
+
+
+def test_shaping_then_deliverable_then_progress_share_the_next_turn(monkeypatch, tmp_path):
+    monkeypatch.setattr(agent_module, "EARLY_DELIVERABLE", True)
+    monkeypatch.setattr(agent_module, "DELIVERABLE_TURN", 1)
+    monkeypatch.setattr(agent_module, "PROGRESS_CHECK", True)
+    monkeypatch.setattr(agent_module, "PROGRESS_EVERY", 1)
+    monkeypatch.setattr(agent_module, "OBSERVATION_SHAPE", True)
+    llm, _, context = run(
+        monkeypatch, tmp_path, [(COMMAND, False), (DONE, False)], stdout="\x00" * 40
+    )
+    optional = [node for node in nodes(context) if node in ("shape", "deliverable", "progress")]
+    assert optional == ["shape", "deliverable", "progress"]
+    assert len(llm.temperatures) == 2
+    assert context.n_input_tokens == 20
