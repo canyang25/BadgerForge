@@ -44,16 +44,17 @@ Small, measurable changes before any rewrite. Each is one dev-slice run
 compared against the current best.
 
 **Full runs: 0.438 (39/89, 10-07) → 0.539 (48/89, 10-11) with #11 and 16k →
-0.584 (52/89, 10-12) with medium reasoning effort. The same agent since: 0.494
-(44/89, 10-16) and 0.551 (49/89, 10-22). Estimate for main: 3 runs, 52, 44
-and 49, mean 48.3/89 (0.543), standard deviation about 4 tasks.**
+0.584 (52/89, 10-12) with medium reasoning effort. Since then, with changes
+that moved nothing measurable: 0.494 (44/89), 0.551 (49/89), 0.607 (54/89,
+main at `925566b`, 10-26) and 0.528 (47/89, plan 35, 10-28). Runs 3–7: mean
+49.2/89 (0.553), standard deviation 4 tasks.**
 
 **Next: the writeup** (deadline Wed 2 Dec 2026, 23:59 Madison time, Kaggle).
-The submission configuration is main at `52be238`, whose agent is the one in
-full runs 3–5. A PR that changes the agent needs a new full run before the
-estimate applies to it. Further experiments only if they touch many tasks and
-we can check that they actually fire (plan 33 is the best left). Plan item
-numbers are not PR numbers.
+The submission configuration is main at `925566b`, whose agent is the one in
+full run 6 (full runs 3–5's plus Preston's parser fixes #34 and #36). A PR
+that changes the agent needs a new full run before the estimate applies to it.
+Further experiments only if they touch many tasks and we can check that they
+actually fire (plan 33 is the best left). Plan item numbers are not PR numbers.
 Before long runs on the Windows laptop, see docs/setup-windows.md (the blue
 screen note).
 
@@ -72,7 +73,7 @@ screen note).
 | 11 | ~~Short command-less replies: stronger nudge, temperature 0.7 for one turn~~ | Yes: no give-ups on short replies (3 of 7 at 16k), and the next reply has a command 82% of the time (65% before). Passes 14/30, within noise | ruoshi ✅ |
 | 12 | ~~`LLM_MAX_TOKENS=16384`~~ | Yes, on top of #11: 19/30 vs 14/30, cut-off give-ups 3 vs 8. Costs time: 46 vs 26 s/turn, timeouts 6 vs 2. Now the default | ruoshi ✅ |
 | 13 | ~~`LLM_REASONING_EFFORT=medium`, again~~ | Slice: a wash (18 vs 19/30). Full run: 52/89 vs 48/89, timeouts 20 → 10, wrong answers 5 → 15, turns 12 vs 28 s. Now the default | ruoshi ✅ |
-| 14 | Empty answers: no content, finish reason not `length` | Half the replies in the give-ups of full runs 2 and 3, and 6 of batch 2's 11 give-ups had no cut-off at all. The act nudge recovers most, but llm.py labels them "cut off", which they aren't. Own handling? | |
+| 14 | Empty answers: no content, finish reason not `length` | Half the replies in the give-ups of full runs 2 and 3, and 6 of batch 2's 11 give-ups had no cut-off at all. The act nudge recovers most, but llm.py labels them "cut off", which they aren't. Own handling? Plan 35 tried one: no gain | |
 | 15 | Tell the model how much time is left | Later: Harbor doesn't give our agent the limit, and none of full run 3's 10 timeouts had a scoring state at the deadline (4 of 53 timeouts in all runs did) | |
 | 16 | ~~Check the work before TASK_COMPLETE, at medium or full effort~~ | No: 26 / 27 / 25 of 39 (none / medium / full effort) on 13 tasks. The check mostly re-confirms; when it acts it breaks working solutions as often as it fixes. Not merged (`ruoshi/feat-verify-before-done`) | ruoshi ✗ |
 | 17 | ~~System prompt says there is no network; TB 2.1 tasks have it~~ | No: in full run 3 no reply says it's offline, 33 trials installed or downloaded (199 commands, 1 network error). Dropped | ruoshi ✗ |
@@ -93,6 +94,8 @@ screen note).
 | 32 | Stop on 8 failures in a row only when every output is the same | Full run 5's build-pov-ray broke its own container (`kill -9 -1`) and kept going. Idea only | |
 | 33 | Progress check every ~10 turns or after 3 identical failures: say what changed, else switch approach | 5 sometimes-solved tasks get stuck on one approach (10-20 analysis). Define how to tell it fired before running | |
 | 34 | Write the deliverable as soon as there's a plausible answer, then improve it | 3 sometimes-solved tasks think without ever writing the file (10-20 analysis) | |
+| 35 | ~~Never run a command from cut-off reasoning; store an empty reply as an empty message (PR #37)~~ | No: batch 4 10/30 vs 14/30, full run 7 47/89 vs run 6's 54, no failure traced to it. Tail commands 23 → 0, but give-ups 6 → 10: empty replies now count toward the 4-strike rule. Not merged | preston ✗ |
+| 36 | Run a bash block that has no closing fence when the reply finished normally | Batch 4: 3 such replies in one protein-assembly trial ran nothing, since #34 needs a closing fence. Count how often it happens first | |
 
 ## Phase 3 — LangGraph
 

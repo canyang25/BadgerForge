@@ -3,6 +3,144 @@
 Newest first. One entry per run we want to remember: what changed, what the
 numbers were, what we learned. Numbers come from `scripts/score.py`.
 
+## 2026-10-28 — Full run 7: main + PR #37, 47/89; #37 not merged
+
+- Code: main `925566b` with Preston's PR #37 (`24e4fd8`) merged locally as
+  `7800343`, not pushed. #37 parses a cut-off reply's whole content, keeps
+  only its tail in the history, never runs a command from a reasoning tail,
+  and stores an empty reply that wasn't cut off as an empty message. Code
+  defaults otherwise, concurrency 2, GPU in hybrid mode.
+- 10-28 11:40 to 20:34 CDT. torch-tensor-parallelism's container didn't start
+  within 600 s and was rerun once (failed, as in run 6); nothing else
+  interrupted. Results: `eval/results/full-run-7.csv`.
+
+| | Full run 7 | Full run 6 |
+|---|---|---|
+| Passes | 47 | 54 |
+| Wrong answers | 19 | 14 |
+| Timeouts | 8 | 11 |
+| Gave up | 10 | 6 |
+| Hit the 100-turn cap | 5 | 4 |
+| Tokens per task | 530k | 499k |
+
+TB 0.52809, total tokens 47,212,984, leaderboard 0.52804. The bar set before
+the run was 47 (46 or fewer, two run-to-run deviations below run 6, would
+have meant digging in first); it landed on it.
+
+**No failure traces back to #37.** 4 tasks passed that failed in run 6, and 11
+failed that passed. In 8 of the 11, #37 changed nothing; in tune-mjcf it
+changed only the history. It changed actions only in gcode-to-text (2 English
+sentences main would have run) and password-recovery (a `find` for a file
+the agent had already found; it timed out at turn 50). build-cython-ext ran on
+a slow gateway (44 s/turn, 2.7 tokens/s).
+
+**Commands from reasoning tails: 0**, across 70 cut-off empty replies, 95
+empty replies that weren't cut off and 4 cut-off replies with content. Of the
+replies where #37 and main could differ, 66 were handled the same, 80 differed
+only in the history and 23 in the action, all 23 a tail command main would
+have run.
+
+**Side effect: give-ups 6 → 10.** An empty reply now counts toward the
+4-in-a-row give-up rule, where main would sometimes run a tail command and
+reset the count; in 5 of the 10 give-ups main would have done so within the
+last 4 replies. All 10 tasks failed in run 6 too (4 gave up, 5 timed out, 1
+wrong), so this mostly turns timeouts into earlier give-ups, which matches
+plan 21.
+
+**Not merged (plan 35).** Neither batch 4 nor this run shows a gain, and #37
+changes when the agent gives up. Preston closed it on 10-28; main stays at
+`925566b`.
+
+**Runs 3–7: 52, 44, 49, 54, 47, mean 49.2/89 (0.553),** standard deviation
+4.0. Three agent versions (main at `52be238`, main at `925566b`, `925566b` +
+#37), none measurably different from the others. 35 tasks passed in all five,
+27 in none, 27 go either way.
+
+## 2026-10-27 — Batch 4: PR #37's cut-off handling: no
+
+- Code: main `925566b` against `7800343` (main + #37, as in full run 7). Same
+  day: main 12:24–15:43, #37 15:43–19:04 CDT, no reruns.
+- 10 tasks with many cut-off or empty replies, 3 trials:
+  adaptive-rejection-sampler, break-filter-js-from-html,
+  feal-linear-cryptanalysis, gcode-to-text, mailman, password-recovery,
+  polyglot-rust-c, protein-assembly, sam-cell-seg, sqlite-db-truncate (17/40
+  in full runs 3–6). Results: `eval/results/b4-main.csv`, `b4-pr37.csv`.
+
+| | main | + #37 |
+|---|---|---|
+| Passes | 14/30 | 10/30 |
+| Wrong answers | 6 | 8 |
+| Timeouts | 9 | 11 |
+| Gave up | 1 | 1 |
+| Commands from reasoning tails | 23 | 0 |
+| Tokens | 6.60M | 6.81M |
+
+Fisher p = 0.43.
+
+**#37 removes what it targets.** On main, 10 tail commands came from cut-off
+empty replies (2 worked, perl and od in password-recovery; 8 failed, 5 with
+exit 127) and 13 from empty replies that weren't cut off (all failed; 11 were
+English sentences in one protein-assembly trial). Counting only commands
+from the reply's content, the next reply after an empty one had a command
+62% vs 65% of the time (cut off) and 70% vs 81% (not cut off).
+
+**Storing an empty message did no harm.** An empty reply came right after
+another 25% of the time on main and 17% with #37, the longest run was 4 vs 3,
+and the gateway never errored on an empty message.
+
+**The gap doesn't trace back to it.** #37 passed one fewer on 6 tasks and one
+more on 2. Of its 13 failing trials on those 6 tasks, it changed nothing in 7
+(including every failing trial of adaptive-rejection-sampler, sam-cell-seg
+and sqlite-db-truncate), only the history in 5, and in one protein-assembly
+trial 2 actions, both an English sentence main would have run. None of the 36
+commands that followed an empty reply repeated an earlier one. The failures
+were the usual ones: protein-assembly stuck searching PDB without ever
+designing the gBlock, break-filter payloads that don't fire, and an
+adaptive-rejection-sampler trial that killed apt with `kill -9` after two
+60 s command timeouts, which broke dpkg, so the verifier couldn't install
+curl and ran no tests.
+
+**Not covered by #37:** 3 short replies in one protein-assembly trial had a
+bash block with no closing fence and finished normally; the parser skips
+those, on main too (plan 36).
+
+## 2026-10-26 — Full run 6: main at 925566b, 54/89
+
+- Code: main `925566b`, full runs 3–5's agent plus Preston's parser fixes:
+  #34 (a code block needs a matching closing fence on its own line; non-shell
+  blocks are skipped) and #36 (TASK_COMPLETE counts on a line of its own;
+  rate-limit errors are retried; prompts are packaged). Code defaults,
+  concurrency 2, GPU in hybrid mode.
+- 10-26 10:08 to 17:24 CDT; no interruption, no reruns, no infrastructure
+  failures. Results: `eval/results/full-run-6.csv`.
+
+| | Full run 6 | Full run 5 | Full run 3 |
+|---|---|---|---|
+| Passes | 54 | 49 | 52 |
+| Wrong answers | 14 | 17 | 15 |
+| Timeouts | 11 | 12 | 10 |
+| Gave up | 6 | 7 | 7 |
+| Hit the 100-turn cap | 4 | 3 | 3 |
+| Verifier timeouts | 0 | 0 | 2 |
+| No result file | 0 | 1 | 0 |
+
+TB 0.60674, total tokens 44,436,802 (499k per task), leaderboard 0.60669.
+Gateway median 12 s/turn, no slow trials.
+
+**Best so far, but within noise.** Against run 3, 7 more passed and 5 fewer;
+against run 5, 10 more and 5 fewer. Runs differ by about 4 tasks on their own,
+so this doesn't show that #34 or #36 helped.
+
+**The parser fixes do what they should.** Before they were merged, a replay
+of 18,368 recorded replies found 79 where the old parser ran the prose between
+two code blocks (49 would have exited 127), and showed that requiring
+TASK_COMPLETE to be the whole reply would have broken 395 completions, hence
+#36's line rule. In this run, of 2,585 replies, 53 commands exited 127: 31
+were real commands missing from the container, 22 came from cut-off reasoning
+tails (→ #37), none were prose. TASK_COMPLETE went unused twice, both in
+replies that also had a shell block, which runs first by design; both tasks
+then finished and passed.
+
 ## 2026-10-22 — Full run 5: 49/89; estimate for main 48.3/89
 
 - Code: `ruoshi/feat-checklist-and-guard` (`f82c570`), main's agent plus two

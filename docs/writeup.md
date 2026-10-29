@@ -9,7 +9,7 @@ yet. Details for every number are in `docs/experiments.md`.
 
 **Title:** BadgerForge: what a small ReAct agent on Qwen3.8-27B learned from full-benchmark failures *(TODO: shorten)*
 
-**Subtitle:** Fixing how the agent handles cut-off and command-less replies took us from 0.438 to about 0.54 on Terminal-Bench 2.1; most other ideas measured as noise.
+**Subtitle:** Fixing how the agent handles cut-off and command-less replies took us from 0.438 to about 0.55 on Terminal-Bench 2.1; most other ideas measured as noise.
 
 ## Submission card
 
@@ -35,7 +35,8 @@ TODO (3–5 sentences). Points to make:
 - Starter ReAct loop, kept simple; no new tools or multi-agent setup.
 - Biggest gains came from reading full-run failures: replies cut off at the
   output limit, and replies that describe a step without running it.
-- Main at `52be238`: 3 full runs, 52, 44 and 49 of 89, mean 48.3/89 (0.543).
+- Full runs 3–7 (three agent versions, none measurably different): 52, 44,
+  49, 54 and 47 of 89, mean 49.2/89 (0.553).
 - Most later ideas (self-checks, sampling settings, never giving up) changed
   nothing measurable, and runs differ by about 4 tasks on their own.
 
@@ -78,6 +79,8 @@ In order, one line each (TODO: trim to fit the word limit):
 | Never give up | no gain: trials it kept alive all ran out the clock |
 | Three ways of handling a cut-off reply | no difference; cut-offs had become rare |
 | Failure stop as a reminder | changed no outcome |
+| Parser: matching code fences, `TASK_COMPLETE` on its own line | kept; **full run 6: 0.607** |
+| Never run commands from cut-off reasoning | no gain: 10/30 vs 14/30; full run 7: 0.528 |
 
 Analysis without runs: the system prompt's "no network" line didn't stop
 installs; turn time is spent on output, not input, so compacting history
@@ -86,11 +89,11 @@ wouldn't help.
 ## 4. Results
 
 - TODO: the submitted run's numbers, command and job name.
-- Main, 3 full runs: 52, 44, 49 (mean 48.3/89, standard deviation about 4,
-  close to what a single run's randomness predicts). 38 tasks always pass,
-  31 never do, 20 go either way.
-- Full run 3, the best: 52/89, 0.58427 (wrong 15, timeouts 10, gave up 7,
-  turn cap 3, verifier timeouts 2).
+- Full runs 3–7: 52, 44, 49, 54, 47 (mean 49.2/89, standard deviation 4,
+  close to what a single run's randomness predicts). 35 tasks passed in all
+  five, 27 in none, 27 go either way.
+- Full run 6, the best: 54/89, 0.60674 (wrong 14, timeouts 11, gave up 6,
+  turn cap 4), main at `925566b`.
 - TODO: per-category pattern, if we look at one.
 
 ## 5. Failure analysis
