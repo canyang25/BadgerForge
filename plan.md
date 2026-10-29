@@ -150,12 +150,17 @@ Next extensions, each measured separately:
 
 ## Selective promotion
 
-Keep each new improvement in one PR with its tests and explicit prerequisites.
+Keep each new improvement in one PR with its tests and explicit prerequisites,
+then squash it into one focused commit on `preston-test`. Delete the temporary
+work branch after merging. Keep optional behavior in separate modules and off
+by default until its scored comparison supports adoption.
 Before calling it ready for main, apply its commits to the intended base in a
 temporary clone and run the tests there. A green combined `preston-test` suite
 does not prove an individual cherry-pick works. Record the base, prerequisites,
 application result, and test result; behavior changes still need scored evidence.
 See [the promotion guide](docs/promoting-changes.md).
-Independent promotion branches and their exact prerequisite chains are recorded
-in `eval/promotion-ports.json`. They leave main unchanged; selecting an enabled
-experiment still requires its scored comparison before adoption.
+The integration commit catalog is `eval/promotion-commits.json`. Its entries
+must reference commits reachable from `preston-test`; document older combined
+changes that need splitting instead of promising a clean cherry-pick. Prepare
+one temporary main PR only when selecting changes. Do not maintain permanent
+per-feature export branches or rewrite shared integration history.

@@ -1,0 +1,88 @@
+{
+  "source_ref": "preston-test",
+  "source_snapshot": "0dd5be1f1bb682ffe25de65a6b87924a4ff0e0c5",
+  "audited_target": "cb8c3d3c36641feff342dc9729cafa7d8d05f78c",
+  "audit_date": "2026-10-29",
+  "policy": "Focused integration commits are selectable units. Prepare one short-lived main PR when needed; preserve shared history and delete merged work branches.",
+  "changes": {
+    "graph-core": {
+      "commit": "6eaa8826074a308c1a5fc0b44c07099bcefe37e5",
+      "requires": [],
+      "application": "verified_chain",
+      "unit_tests_passed": 100,
+      "preparation": "The historical foundation commit is large; split review stages in the destination PR if needed. Revalidate declared dependencies there."
+    },
+    "legacy-optional-nodes": {
+      "commit": "e343cac8f4f0a152356dff0ec95361c4cedd9808",
+      "requires": [
+        "graph-core"
+      ],
+      "application": "needs_split",
+      "preparation": "Progress and shaping were originally combined. Extract the selected feature and its wiring/tests in a future destination PR."
+    },
+    "graph-cancellation": {
+      "commit": "3ca300a3041c44390193d742154c9cb4683a6d9e",
+      "requires": [
+        "legacy-optional-nodes"
+      ],
+      "application": "verified_chain",
+      "unit_tests_passed": 111,
+      "preparation": "This recorded chain includes original optional-node context. Adapt the small initialization fix when promoting to graph core alone."
+    },
+    "graph-progress-tracing": {
+      "commit": "db3ee328d59214fcf85405dee65fc610a89ddb57",
+      "requires": [
+        "legacy-optional-nodes"
+      ],
+      "application": "verified_chain",
+      "unit_tests_passed": 109,
+      "preparation": "The original prerequisite includes both optional nodes; select/split progress-only wiring when that is the intended scope."
+    },
+    "graph-shaping-diagnostics": {
+      "commit": "0754f271f33e19d62bbb58834d25f46ac266d235",
+      "requires": [
+        "legacy-optional-nodes"
+      ],
+      "application": "verified_chain",
+      "unit_tests_passed": 123,
+      "preparation": "The original prerequisite includes both optional nodes; select/split shaping-only wiring when that is the intended scope."
+    },
+    "experiment-launcher": {
+      "commit": "46141e08add92a0becd8b749c2a3ca01b2c07558",
+      "requires": [],
+      "application": "needs_preparation",
+      "preparation": "Launcher code is agent-independent. Adapt graph-specific documentation and plan hunks; use only profiles whose features exist in the destination."
+    },
+    "graph-deliverable": {
+      "commit": "83600663635851baaa57dd2799c6ae045da1bf48",
+      "requires": [
+        "legacy-optional-nodes"
+      ],
+      "application": "needs_preparation",
+      "preparation": "Extract checkpoint code/tests and adapt destination routing; launcher/profile and documentation changes are incidental context, not required agent behavior."
+    },
+    "promotion-checker": {
+      "commit": "8de298f041ec73aca0cedb57150487af2c6af1de",
+      "requires": [],
+      "application": "verified_chain",
+      "unit_tests_passed": 100,
+      "preparation": "Refresh the accompanying workflow documentation from current preston-test when preparing the destination PR."
+    },
+    "dataset-provenance": {
+      "commit": "0dd5be1f1bb682ffe25de65a6b87924a4ff0e0c5",
+      "requires": [
+        "experiment-launcher"
+      ],
+      "application": "needs_preparation",
+      "preparation": "Apply on the prepared controlled launcher and retain dirty-input regression tests. No graph prerequisite."
+    },
+    "deliverable-smoke-record": {
+      "commit": "cdf1284233f70da0d6a050911a616b85e6fd1f38",
+      "requires": [],
+      "application": "verified_chain",
+      "unit_tests_passed": 94,
+      "preparation": "Result-only record; no agent code or default change."
+    }
+  },
+  "validation_limit": "Application and local unit checks do not establish scored efficacy or fresh-runtime installation. Revalidate the actual destination; experimental behavior stays off until benchmark evidence supports adoption."
+}
