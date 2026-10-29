@@ -7,7 +7,7 @@ container. It handles two things:
    free-text response. The baseline protocol is intentionally simple so
    that even small local models (~7B) can follow it reliably:
    - A fenced ``bash`` code block → run that command in the container.
-   - The literal string ``TASK_COMPLETE`` → stop the loop.
+   - A line that is exactly ``TASK_COMPLETE`` → stop the loop.
    - Anything else → the LLM didn't follow the protocol; agent.py will
      send a nudge message asking it to try again.
 
@@ -38,9 +38,12 @@ from dataclasses import dataclass
 
 from harbor.environments.base import BaseEnvironment
 
-CODE_BLOCK_RE = re.compile(r"```(?:bash|sh|shell)?\s*\n(.*?)```", re.DOTALL)
-"""Matches a Markdown fenced code block tagged as bash/sh/shell (or untagged).
-The captured group (1) is everything between the opening and closing fences."""
+CODE_BLOCK_RE = re.compile(
+    r"^[ \t]*(?P<fence>`{3,})(?P<language>[^`\r\n]*)\r?\n"
+    r"(?P<command>.*?)^[ \t]*(?P=fence)`*[ \t]*(?:\r?\n|$)",
+    re.DOTALL | re.MULTILINE,
+)
+"""Matches complete Markdown blocks with matching backtick fences."""
 
 DONE_MARKER = "TASK_COMPLETE"
 """The literal string the LLM must emit (outside a code block) to signal
@@ -83,15 +86,16 @@ def parse_action(text: str) -> Action:
     -------
     Action
         The parsed action. ``kind`` is ``"shell"`` if a bash block was found,
-        ``"done"`` if TASK_COMPLETE was found (and no code block), or
+        ``"done"`` if a line is exactly TASK_COMPLETE (and no code block), or
         ``"none"`` if neither was present.
     """
-    match = CODE_BLOCK_RE.search(text)
-    if match:
-        command = match.group(1).strip()
+    for match in CODE_BLOCK_RE.finditer(text):
+        if match.group("language").strip() not in ("", "bash", "sh", "shell"):
+            continue
+        command = match.group("command").strip()
         if command:
             return Action("shell", command)
-    if DONE_MARKER in text:
+    if any(line.strip() == DONE_MARKER for line in text.splitlines()):
         return Action("done")
     return Action("none")
 
