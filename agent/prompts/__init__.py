@@ -14,6 +14,7 @@ ACT_NUDGE_MESSAGE = (_HERE / "nudge_act.md").read_text().strip()
 PROGRESS_MESSAGE = (_HERE / "progress.md").read_text().strip()
 TRUNCATION_NOTE = (_HERE / "shape_truncation.md").read_text().strip()
 DUMP_NOTE = (_HERE / "shape_dump.md").read_text().strip()
+EARLY_DELIVERABLE_MESSAGE = (_HERE / "early_deliverable.md").read_text().strip()
 
 
 def observation_message(observation: str) -> str:

@@ -7,10 +7,12 @@
                none  -> nudge -> call_model | END
                shell -> guard
                           refuse -> progress? -> call_model | END
-                          run    -> execute -> shape? -> progress? -> call_model | END
+                          run    -> execute -> shape? -> deliverable? -> progress? -> call_model | END
 
 ``shape`` and ``progress`` run only when ``AGENT_OBSERVATION_SHAPE=1`` or
-``AGENT_PROGRESS_CHECK=1``. With both unset, the path is the four-node loop.
+``AGENT_PROGRESS_CHECK=1``.
+``deliverable`` runs once when ``AGENT_EARLY_DELIVERABLE=1``; it is also off
+by default. With all three unset, the path is the four-node loop.
 
 ``call_model``, ``nudge``, ``guard``, and ``execute`` each live in their own
 file. A new experiment is another node plus an edge in ``build_graph``.
@@ -28,11 +30,13 @@ from langgraph.graph import END, START, StateGraph
 
 from agent.graph.call_model import call_model
 from agent.graph.context import GraphContext
+from agent.graph.deliverable import deliverable
 from agent.graph.execute import execute
 from agent.graph.guard import guard
 from agent.graph.nudge import nudge
 from agent.graph.progress import progress
 from agent.graph.routing import (
+    route_after_deliverable,
     route_after_execute,
     route_after_guard,
     route_after_model,
@@ -55,6 +59,7 @@ def build_graph():
     graph.add_node("execute", execute)
     graph.add_node("shape", shape)
     graph.add_node("progress", progress)
+    graph.add_node("deliverable", deliverable)
     graph.add_conditional_edges(
         START, route_entry, {"call_model": "call_model", END: END}
     )
@@ -66,13 +71,17 @@ def build_graph():
     graph.add_conditional_edges(
         "nudge",
         route_after_nudge,
-        {"progress": "progress", "call_model": "call_model", END: END},
+        {
+            "deliverable": "deliverable", "progress": "progress",
+            "call_model": "call_model", END: END,
+        },
     )
     graph.add_conditional_edges(
         "guard",
         route_after_guard,
         {
             "execute": "execute",
+            "deliverable": "deliverable",
             "progress": "progress",
             "call_model": "call_model",
             END: END,
@@ -83,6 +92,7 @@ def build_graph():
         route_after_execute,
         {
             "shape": "shape",
+            "deliverable": "deliverable",
             "progress": "progress",
             "call_model": "call_model",
             END: END,
@@ -91,6 +101,14 @@ def build_graph():
     graph.add_conditional_edges(
         "shape",
         route_after_shape,
+        {
+            "deliverable": "deliverable", "progress": "progress",
+            "call_model": "call_model", END: END,
+        },
+    )
+    graph.add_conditional_edges(
+        "deliverable",
+        route_after_deliverable,
         {"progress": "progress", "call_model": "call_model", END: END},
     )
     graph.add_conditional_edges(
@@ -107,7 +125,7 @@ async def run_graph(state: AgentState, context: GraphContext) -> dict:
     # and report zero completed turns rather than an empty result.
     sync(state, context.harbor)
     graph = build_graph()
-    # call_model, guard, execute, shape, progress: a few nodes per turn.
+    # At most six nodes per turn, including all optional checkpoints.
     limit = context.max_turns * 6 + 5
     return await graph.ainvoke(
         state, context=context, config={"recursion_limit": limit}
