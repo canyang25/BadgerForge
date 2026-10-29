@@ -42,6 +42,7 @@ from agent.graph.routing import (
     route_entry,
 )
 from agent.graph.shape import shape
+from agent.graph.trace import sync
 from agent.state import AgentState
 
 
@@ -102,6 +103,9 @@ def build_graph():
 
 async def run_graph(state: AgentState, context: GraphContext) -> dict:
     """Run one task. The recursion cap covers a few nodes per turn."""
+    # A timeout during the first request must still retain the instruction
+    # and report zero completed turns rather than an empty result.
+    sync(state, context.harbor)
     graph = build_graph()
     # call_model, guard, execute, shape, progress: a few nodes per turn.
     limit = context.max_turns * 6 + 5
