@@ -147,3 +147,12 @@ Next extensions, each measured separately:
   built on it.
 - LangSmith for tracing sends transcripts to a third party. Fine for public
   benchmark tasks, but agree on it before turning it on.
+
+## Selective promotion
+
+Keep each new improvement in one PR with its tests and explicit prerequisites.
+Before calling it ready for main, apply its commits to the intended base in a
+temporary clone and run the tests there. A green combined `preston-test` suite
+does not prove an individual cherry-pick works. Record the base, prerequisites,
+application result, and test result; behavior changes still need scored evidence.
+See [the promotion guide](docs/promoting-changes.md).
