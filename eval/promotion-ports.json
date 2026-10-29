@@ -1,0 +1,80 @@
+{
+  "target_main": "cb8c3d3c36641feff342dc9729cafa7d8d05f78c",
+  "source_integration": "8de298f041ec73aca0cedb57150487af2c6af1de",
+  "ports": {
+    "graph-core": {
+      "branch": "codex/promote-graph-core",
+      "commits": [
+        "09b9054c2ff426894707bfba762b8a58cdbfd6ca",
+        "a5255aad909b885d914f1aa1b03f208c83dc371a"
+      ],
+      "head": "a5255aad909b885d914f1aa1b03f208c83dc371a",
+      "requires": [],
+      "unit_tests_passed": 100,
+      "disabled_replay_cases_passed": 10
+    },
+    "graph-cancellation": {
+      "branch": "codex/promote-graph-cancellation",
+      "commits": [
+        "349c4f89d253c42210346a93d817652d5f68368c"
+      ],
+      "head": "349c4f89d253c42210346a93d817652d5f68368c",
+      "requires": [
+        "graph-core"
+      ],
+      "unit_tests_passed": 104,
+      "disabled_replay_cases_passed": 10
+    },
+    "graph-progress": {
+      "branch": "codex/promote-graph-progress",
+      "commits": [
+        "2ea320ac9cb22a420abdf37db4e050ff7e49928f"
+      ],
+      "head": "2ea320ac9cb22a420abdf37db4e050ff7e49928f",
+      "requires": [
+        "graph-core",
+        "graph-cancellation"
+      ],
+      "unit_tests_passed": 110,
+      "disabled_replay_cases_passed": 10
+    },
+    "graph-shape": {
+      "branch": "codex/promote-graph-shape",
+      "commits": [
+        "844829aa42229f4a80a312b64f4e6fe613a9e9a8",
+        "ffc77849389fc9756649090682ce5f8637192c6d"
+      ],
+      "head": "ffc77849389fc9756649090682ce5f8637192c6d",
+      "requires": [
+        "graph-core",
+        "graph-cancellation"
+      ],
+      "unit_tests_passed": 124,
+      "disabled_replay_cases_passed": 10
+    },
+    "graph-deliverable": {
+      "branch": "codex/promote-graph-deliverable",
+      "commits": [
+        "4e32f8b87c0c4c1f92b6fb3edce0ccaf20de0357"
+      ],
+      "head": "4e32f8b87c0c4c1f92b6fb3edce0ccaf20de0357",
+      "requires": [
+        "graph-core",
+        "graph-cancellation"
+      ],
+      "unit_tests_passed": 112,
+      "disabled_replay_cases_passed": 10
+    },
+    "experiment-launcher": {
+      "branch": "codex/promote-experiment-launcher",
+      "commits": [
+        "8f5c06056ce78c341c311b6fef4f8f3c0632578d"
+      ],
+      "head": "8f5c06056ce78c341c311b6fef4f8f3c0632578d",
+      "requires": [],
+      "unit_tests_passed": 108
+    }
+  },
+  "validation": "Local unit tests in the active runtime; graph features off in scripted loop comparisons. Enabled variants still need scored adoption evidence.",
+  "combination_policy": "Each graph experiment is independently tested above core and cancellation. Combining sibling experiment patches requires a wiring rebase and fresh tests."
+}
