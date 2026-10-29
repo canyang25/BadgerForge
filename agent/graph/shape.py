@@ -18,6 +18,7 @@ _NONTEXT = 16
 _ANSI_ESCAPE = re.compile(
     r"\x1b(?:\[[0-?]*[ -/]*[@-~]|\][^\x07\x1b]*(?:\x07|\x1b\\)|[@-_])"
 )
+_BINARY_CONTROL = re.compile(r"[\x00-\x08\x0b\x0c\x0e-\x1f]+")
 
 
 def classify_observation(observation: str) -> str:
@@ -73,14 +74,12 @@ def _numeric_row(line: str) -> bool:
     parts = _ANSI_ESCAPE.sub("", line).split()
     if len(parts) < 4:
         return False
-    numbers = 0
     for part in parts:
         try:
-            float(part.strip(","))
+            float(part.strip(",[]()"))
         except ValueError:
-            continue
-        numbers += 1
-    return numbers >= 4 and numbers / len(parts) >= 0.8
+            return False
+    return True
 
 
 def _stdout(observation: str) -> str:
@@ -119,13 +118,18 @@ def _summary(observation: str, kind: str) -> str:
 
 
 def _summarize_binary(text: str) -> str:
-    """Suppress binary lines while retaining adjacent readable diagnostics."""
+    """Suppress binary sections while retaining readable diagnostic text."""
     output = []
     binary = []
     for line in text.splitlines(keepends=True):
         clean = _ANSI_ESCAPE.sub("", line)
         if _nontext_count(clean):
-            binary.append(line)
+            if _BINARY_CONTROL.sub("", clean).strip():
+                output.append(_binary_summary(binary))
+                binary = []
+                output.append(_BINARY_CONTROL.sub("\ufffd", clean))
+            else:
+                binary.append(line)
         else:
             output.append(_binary_summary(binary))
             binary = []
@@ -140,10 +144,14 @@ def _binary_summary(lines: list[str]) -> str:
     text = "".join(lines)
     nontext = _nontext_count(_ANSI_ESCAPE.sub("", text))
     suffix = "\n" if text.endswith("\n") else ""
-    return (
+    summary = (
         f"[binary data: {len(text)} characters, {nontext} non-text; not shown]"
         f"{suffix}"
     )
+    if len(summary) <= len(text):
+        return summary
+    short = f"[binary data]{suffix}"
+    return short if len(short) <= len(text) else f"\ufffd{suffix}"
 
 
 def _summarize_tables(text: str) -> str:
@@ -168,11 +176,13 @@ def _table_summary(rows: list[str]) -> str:
     last = rows[-1].rstrip("\r\n")[:120]
     cols = len(_ANSI_ESCAPE.sub("", rows[0]).split())
     suffix = "\n" if rows[-1].endswith("\n") else ""
-    return (
+    summary = (
         f"[numeric table: {len(rows)} rows, about {cols} columns]\n"
         f"First row: {first}\nLast row: {last}\n"
         f"The full table was not sent.{suffix}"
     )
+    original = "".join(rows)
+    return summary if len(summary) < len(original) else original
 
 
 async def shape(state: AgentState, runtime: Runtime[GraphContext]) -> dict:

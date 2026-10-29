@@ -105,3 +105,31 @@ def test_colored_numeric_table_keeps_colored_errors():
     result = shaped(observation)
     assert "numeric table: 8 rows, about 5 columns" in result
     assert "stderr:\n\x1b[31mERROR\x1b[0m" in result
+
+
+@pytest.mark.parametrize("stream", ["stdout", "stderr"])
+def test_binary_bytes_on_a_diagnostic_line_preserve_the_text(stream):
+    text = "ValueError: invalid file " + "\x00" * 40 + " at byte 12"
+    result = shaped(f"exit code: 1\n{stream}:\n{text}")
+    assert "ValueError: invalid file" in result
+    assert "at byte 12" in result
+    assert "\x00" not in result
+
+
+def test_alternating_binary_and_text_does_not_expand_the_observation():
+    observation = "exit code: 1\nstdout:\n" + "\x00\nok\n" * 1000
+    result = shaped(observation)
+    assert result.count("ok\n") == 1000
+    assert "\x00" not in result
+    assert len(result) <= len(observation_message(observation)) + len(DUMP_NOTE) + 2
+
+
+def test_numeric_error_messages_are_not_summarized_as_a_table():
+    errors = "\n".join(f"ERROR{i} 1 2 3 4" for i in range(8))
+    assert classify_observation(f"exit code: 1\nstdout:\n{errors}") == ""
+
+
+def test_short_numeric_tables_do_not_expand_the_observation():
+    observation = "exit code: 0\nstdout:\n" + "1 2 3 4\n" * 8
+    result = shaped(observation)
+    assert len(result) <= len(observation_message(observation)) + len(DUMP_NOTE) + 2
