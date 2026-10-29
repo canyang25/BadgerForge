@@ -92,8 +92,10 @@ def launch(args):
         return 0
     if not environment.get("LLM_MODEL"):
         raise ValueError("LLM_MODEL is required; run through scripts/run_experiment.sh")
-    if not shutil.which("harbor", path=environment.get("PATH")):
+    harbor = shutil.which("harbor", path=environment.get("PATH"))
+    if not harbor:
         raise ValueError("harbor is not installed in the active environment")
+    command[0] = harbor
     job.mkdir(parents=True, exist_ok=False)
     manifest.update(status="running", started_at=datetime.now(timezone.utc).isoformat())
     path = job / "experiment.json"
