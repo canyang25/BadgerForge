@@ -156,3 +156,6 @@ temporary clone and run the tests there. A green combined `preston-test` suite
 does not prove an individual cherry-pick works. Record the base, prerequisites,
 application result, and test result; behavior changes still need scored evidence.
 See [the promotion guide](docs/promoting-changes.md).
+Independent promotion branches and their exact prerequisite chains are recorded
+in `eval/promotion-ports.json`. They leave main unchanged; selecting an enabled
+experiment still requires its scored comparison before adoption.

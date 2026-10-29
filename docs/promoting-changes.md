@@ -30,7 +30,50 @@ the active environment: this does not validate installation in a fresh runtime.
 No credentials are loaded, and the inherited gateway API key is removed from
 the test process. Run only trusted tests; the checker is not a security sandbox.
 
-## Existing changes: audited 2026-10-29
+## Independent promotion ports: prepared 2026-10-29
+
+The older coupled diffs below now have independently tested promotion branches.
+They were rebuilt from main at `cb8c3d3`, reusing code from `preston-test` at
+`8de298f`. No integration history was rewritten and no change landed on main.
+The exact full SHAs and prerequisites are in
+[`eval/promotion-ports.json`](../eval/promotion-ports.json).
+
+| Selectable concern | Own commits, in order | Prerequisite | Passing tests |
+|---|---|---|---:|
+| Graph definitions, then switch the loop | `09b9054`, `a5255aa` | main | 94, then 100 |
+| Cancellation fix | `349c4f8` | Graph core | 104 |
+| Progress checks with trigger tracing | `2ea320a` | Core + cancellation | 110 |
+| Shaping helpers, then optional wiring | `844829a`, `ffc7784` | Core + cancellation | 120, then 124 |
+| Early-deliverable checkpoint | `4e32f8b` | Core + cancellation | 112 |
+| Controlled experiment launcher | `8f5c060` | main; no graph | 108 |
+
+The branches are `codex/promote-graph-core`, `codex/promote-graph-cancellation`,
+`codex/promote-graph-progress`, `codex/promote-graph-shape`,
+`codex/promote-graph-deliverable`, and `codex/promote-experiment-launcher`.
+Each change is under 400 changed lines. The core's definitions and loop switch,
+and shaping's helpers and wiring, are separate commits for review.
+
+Each graph branch also matches the exact main loop on ten scripted cases with
+its feature off: model requests, temperatures, commands, tokens, and stopping
+metadata. The checkpoint contains no launcher change; the launcher contains no
+graph code or graph documentation dependency. Enabled feature tests establish
+activation and routing, not a score improvement. All feature defaults remain off.
+
+For example, verify cancellation alone or shaping alone:
+
+```bash
+.venv/bin/python scripts/check_promotion.py --base main 09b9054 a5255aa 349c4f8
+.venv/bin/python scripts/check_promotion.py --base main 09b9054 a5255aa 349c4f8 844829a ffc7784
+```
+
+Each experiment is selectable without either sibling experiment. Combining
+sibling patches still needs a wiring rebase and another validation run; do not
+assume their changes to the same routing file will cherry-pick together. The
+integration branch already tests all three together. On the plain loop, use
+only the launcher's control or turns150 profile; the other profiles need their
+corresponding agent feature, and activation must be checked in the node trace.
+
+## Original commits: historical audit 2026-10-29
 
 Target: `main` at `cb8c3d3c36641feff342dc9729cafa7d8d05f78c`.
 These are local unit-test results, not new model benchmarks. Each row starts
@@ -56,12 +99,8 @@ onto main just to satisfy a documentation conflict. Port the affected concern
 and its tests, adjusting the destination's docs in that same promotion PR.
 Do not merge all of `preston-test` to acquire a single experiment.
 
-## Next improvements
+## Remaining validation and tooling
 
-- Make portable versions of the cancellation and launcher commits where the
-  original diff depends only on unrelated wiring or documentation context.
-- Separate the original progress and shaping additions before promoting one
-  without the other. Keep the deliverable node separate from launcher support.
 - Add dataset revision and selected-task dirtiness to experiment manifests;
   the current manifest pins the agent but can miss changed benchmark inputs.
 - Run scored loop/graph parity and targeted failure comparisons before
