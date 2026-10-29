@@ -95,7 +95,7 @@ screen note).
 | 33 | Progress check every ~10 turns or after 3 identical failures: say what changed, else switch approach | 5 sometimes-solved tasks get stuck on one approach (10-20 analysis). Define how to tell it fired before running | |
 | 34 | Write the deliverable as soon as there's a plausible answer, then improve it | 3 sometimes-solved tasks think without ever writing the file (10-20 analysis) | |
 | 35 | ~~Never run a command from cut-off reasoning; store an empty reply as an empty message (PR #37)~~ | No: batch 4 10/30 vs 14/30, full run 7 47/89 vs run 6's 54, no failure traced to it. Tail commands 23 → 0, but give-ups 6 → 10: empty replies now count toward the 4-strike rule. Not merged | preston ✗ |
-| 36 | Run a bash block that has no closing fence when the reply finished normally | Batch 4: 3 such replies in one protein-assembly trial ran nothing, since #34 needs a closing fence. Count how often it happens first | |
+| 36 | ~~Run a bash block that has no closing fence when the reply finished normally~~ | Not doing: 34 of 23,144 recorded replies (0.15%, 25 trials), mostly build-pov-ray and protein-assembly. Each costs one turn, and after the nudge the next turn ran a command 31 times (7 the same one). Accepting them would also run 5 degenerate repetitions, 2 half statements and 5 commands trailed by leftover tool-call XML | ✗ |
 
 ## Phase 3 — LangGraph
 

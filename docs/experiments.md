@@ -3,6 +3,30 @@
 Newest first. One entry per run we want to remember: what changed, what the
 numbers were, what we learned. Numbers come from `scripts/score.py`.
 
+## 2026-10-29 — Analysis only: bash blocks with no closing fence (plan 36): not doing
+
+Batch 4 had 3 replies that ran nothing because their bash block never closed.
+Counted over every recorded reply (full runs 3–5 and 7, batches 1–4: 23,144)
+with main's parser. Finish reasons come from the logs where we have them
+(batch 4, full run 7); elsewhere from the nudge that followed (the generic one
+after a cut-off, the act nudge otherwise). Batch 2's drop arm removed cut-off
+replies from the history, so those aren't counted.
+
+- 54 replies end inside an unclosed bash block: 17 cut off (expected), 34
+  finished normally, 3 other.
+- The 34 are 0.15% of replies, in 25 trials; build-pov-ray has 9 and
+  protein-assembly 8. The ones with logs finished with `stop` well under the
+  output limit (1.1k–2.3k tokens in batch 4).
+- 25 held a real command: 17 clean, 3 followed by a stray `</`, 5 followed by
+  leftover tool-call XML (`</parameter></invoke>`). The other 9: 5 degenerate
+  repetitions (one word thousands of times), 2 half statements, 2 empty
+  blocks.
+- After the act nudge, the next turn ran a command 31 times (7 of them the
+  same command again) and nothing 3 times.
+
+**Not doing:** each costs one turn and the next turn mostly recovers;
+accepting unclosed blocks would also run the degenerate and half-written ones.
+
 ## 2026-10-28 — Full run 7: main + PR #37, 47/89; #37 not merged
 
 - Code: main `925566b` with Preston's PR #37 (`24e4fd8`) merged locally as
