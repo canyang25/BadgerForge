@@ -85,7 +85,10 @@ fixes already on main and should not be replayed merely to repair doc context.
 Dataset provenance is implemented in #51; see
 [the input-provenance guide](experiment-provenance.md). It records the dataset
 revision and detects changes to selected task files before a controlled run.
-Scored loop/graph comparison and targeted feature evidence still gate behavior
-adoption. The earlier two-task checkpoint pilot passed 6/6 in each arm and did
-not establish an improvement. Full 89-task x86 validation remains a separate
-adoption gate. No main promotion or default change is part of this workflow.
+The [local loop/graph control comparison](experiments.md#2026-10-30--looplanggraph-control-ten-tasks-three-attempts-per-arm)
+is recorded: 17/30 and 21/30, with 52 matching offline recorded replays.
+This completes local control collection, without establishing general parity
+or improvement. Targeted enabled-feature evidence and full 89-task native-x86
+validation still gate adoption. The earlier two-task checkpoint pilot passed
+6/6 in each arm and did not establish an improvement. No main promotion or
+default change is part of this workflow.

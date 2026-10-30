@@ -100,41 +100,48 @@ Rebuild the loop as a graph once Phase 2 stops moving the numbers. The
 current agent's score is the bar the graph version has to clear before it
 replaces it.
 
-Readiness work on `preston-test`, in separate PRs
+Completed local readiness work on `preston-test`, in separate PRs
 ([file claims and tracking](https://github.com/canyang25/BadgerForge/issues/40)):
 
-1. Sync `main` before measuring parity: keep complete command fences,
+1. Synced `main` before measuring: kept complete command fences,
    standalone completion markers, packaged prompt Markdown, and current
    gateway/resume reporting while retaining the LangGraph package.
-2. Preserve stderr and surrounding text when shaping numeric or binary
-   output. Colored terminal messages must remain readable. Both optional
+2. Preserved stderr and surrounding text when shaping numeric or binary
+   output. Colored terminal messages must remain readable. Optional
    nodes stay off by default.
-3. Test cancellation during a model request and container execution. Harbor
+3. Tested cancellation during a model request and container execution. Harbor
    must retain completed turns, token usage, messages, and node traces.
-4. Record why each progress check fired and document the controlled runs:
-   graph parity first, progress checks second, then a higher turn cap and
+4. Recorded why each progress check fired and documented controlled runs:
+   graph control first, progress checks second, then a higher turn cap and
    output shaping as separate experiments.
 
-Unit tests establish local correctness; they do not establish score parity.
-Compare the current loop and graph with identical settings on the dev slice,
-three trials per task, and report score, tokens, time, and gateway health.
+The local ten-task control comparison is complete: loop 17/30, graph 21/30,
+with infrastructure failures retained. All 52 eligible recorded trajectories
+matched through both frozen scaffolds in offline replay. Results, source and
+dataset pins, tokens, and limits are in [the experiment log](docs/experiments.md).
+No public timing comparison is claimed. This is ARM/amd64-emulation evidence;
+the full 89-task native-x86 adoption gate remains open.
+
+Unit tests and this small comparison do not establish general score parity.
 Inspect feature activations before attributing a result to an experiment.
 Validate a promising configuration on all 89 tasks before replacing the loop.
 
-Next extensions, each measured separately:
+Implemented extensions, with behavior validation still separate:
 
-- Add a launcher for control, progress, higher-turn-cap, and shaping arms.
+- Added a launcher for control, progress, higher-turn-cap, and shaping arms.
   Apply flags after loading gateway settings and save the commit, task list,
   and selected non-secret settings with each job. Dry runs must not contact
   the model or resolve credentials.
-- Test plan 34 as an optional checkpoint: after a configurable early turn,
+- Added plan 34 as an optional checkpoint: after a configurable early turn,
   ask for the simplest plausible deliverable before further refinement.
   Record when it fires, keep it off by default, and measure time to the first
-  artifact as well as final reward before adopting it.
+  artifact as well as final reward before adopting it. The two-task pilot
+  showed activation and no pass benefit; targeted efficacy remains unproven.
 
-- Port the existing loop to LangGraph with no behaviour change, and confirm
-  it matches the current numbers
-- Observability: logging and tracing per node, so we can see where tokens go
+- Complete native-x86 full-benchmark validation before adopting the graph
+  foundation; the local comparison does not prove matching general scores
+- Per-node logging and tracing are implemented; verify enabled-feature
+  activations separately before attributing any effect to them
 - Then experiment: planning and verification nodes, agent instructions,
   single vs multiple agents
 

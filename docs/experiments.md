@@ -3,6 +3,86 @@
 Newest first. One entry per run we want to remember: what changed, what the
 numbers were, what we learned. Numbers come from `scripts/score.py`.
 
+## 2026-10-30 — Loop/LangGraph control: ten tasks, three attempts per arm
+
+- Frozen loop: `cb8c3d3c36641feff342dc9729cafa7d8d05f78c`.
+  Frozen graph: `8de298f041ec73aca0cedb57150487af2c6af1de`.
+- Terminal-Bench 2.1 dataset:
+  `7131e4375048a0e408a8fb404b5f499d726b695b`. Selected task files were
+  unchanged; frozen agent sources and runtime versions were verified.
+- Model: `qwen3.8-27b`, medium reasoning, temperature 0.2, 16,384 output
+  tokens. Concurrency one, alternating the first arm by task; 100 turns,
+  60-second command limit, identical task limits. Progress, observation
+  shaping, and the deliverable checkpoint were all off.
+- ARM host with Linux/amd64 emulation; Harbor 0.24.0, LangGraph 1.2.18,
+  OpenAI client 2.54.0. This is local development evidence, not the full
+  89-task native-x86 adoption gate.
+- Rows: [loop](../eval/results/loop-graph-parity-loop-20261029.csv) and
+  [graph](../eval/results/loop-graph-parity-graph-20261029.csv). Exactly 30
+  finalized results per arm, three per task. `eval/scoring.py` and
+  `scripts/export_trials.py` independently agreed on rewards and tokens.
+  Only manifest-listed job outputs were scored; unit-test fixtures were excluded.
+
+| Task | Loop passes | Graph passes |
+|---|---:|---:|
+| extract-elf | 3/3 | 0/3 |
+| write-compressor | 0/3 | 0/3 |
+| compile-compcert | 0/3 | 1/3 |
+| feal-linear-cryptanalysis | 1/3 | 2/3 |
+| sqlite-db-truncate | 0/3 | 3/3 |
+| largest-eigenval | 2/3 | 3/3 |
+| modernize-scientific-stack | 3/3 | 3/3 |
+| portfolio-optimization | 3/3 | 3/3 |
+| regex-log | 2/3 | 3/3 |
+| reshard-c4-data | 3/3 | 3/3 |
+| **Total** | **17/30** | **21/30** |
+
+| Outcome / cost | Loop | Graph |
+|---|---:|---:|
+| Unfiltered task-averaged reward | 0.56667 | 0.70000 |
+| Pass | 17 | 21 |
+| Wrong answer | 6 | 4 |
+| Agent timeout with failing reward | 3 | 2 |
+| Commandless give-up | 3 | 2 |
+| Gateway failure | 1 | 1 |
+| Raw input + output tokens across all 30 attempts | 7,055,876 | 7,371,583 |
+
+Infrastructure failures remain in the primary score and CSVs. One graph FEAL
+attempt had an `AgentTimeoutError` but its artifacts passed the grader; it
+counts as a pass, with the exception retained. Published CSV `seconds` cells
+are intentionally blank; no timing or latency comparison is reported.
+
+**The four-pass difference does not establish a general framework benefit or
+score parity.** There are only ten distinct tasks, with repeated attempts.
+Graph used 4.5% more recorded model tokens in this run; that descriptive
+total is not a measurement of framework overhead.
+
+Investigated divergent cases:
+
+- ELF went in the opposite direction: all three graph solutions used incorrect
+  address mappings, with zero overlap against the grader's reference keys.
+- SQLite loop recoveries scored 6, 6, and 2 against a requirement of more than
+  6; all three graph recoveries passed. The failed loop regex matched only
+  two of nine expected date cases. These are differences in generated solutions.
+- Two loop CompCert attempts reached the 100-turn cap without producing
+  `ccomp`; a graph attempt built and exercised it successfully. Each arm
+  also retains its separate gateway failure.
+- The eigenvalue task includes a speed-based grader, so its outcomes need
+  confirmation on native x86. An agent timeout is not itself a code regression.
+
+All **52 eligible normally ended recordings** were replayed through both
+frozen scaffolds using saved model replies and command observations. Every
+request history, command, inferred temperature, stop, and final conversation
+matched. Replay made no new model or Docker calls. Its token counts are
+synthetic; timed-out/error cases are excluded from replay, but not from scores.
+No reproducible message/routing regression was found in these recordings.
+This check does not cover live timing, prove statistical equivalence, or
+establish a causal explanation for the score difference.
+
+**Keep experimental defaults off.** The local control comparison is complete.
+Next gates are a full 89-task native-x86 control comparison and separate,
+targeted tests of each enabled feature before adoption or promotion to main.
+
 ## 2026-10-29 — Early-deliverable checkpoint: two-task live smoke
 
 - Agent: `8360066` on `preston-test`; checkpoint off/on after turn five.
