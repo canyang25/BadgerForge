@@ -1,11 +1,26 @@
 # Evaluating the LangGraph branch
 
-Merge the readiness PRs into `preston-test` before collecting graph results:
+The readiness PRs have merged into `preston-test`:
 [sync main](https://github.com/canyang25/BadgerForge/pull/41),
 [preserve shaped diagnostics](https://github.com/canyang25/BadgerForge/pull/42),
 and [retain context during cancellation](https://github.com/canyang25/BadgerForge/pull/43).
 The progress trace change records which trigger fired without changing its
-prompt or routing. Both optional nodes stay off by default.
+prompt or routing. Optional nodes stay off by default.
+
+## Completed local control comparison
+
+The ten-task, three-attempt comparison is complete: loop **17/30**, graph
+**21/30**, with one gateway failure per arm retained in the unfiltered score.
+Both scorers agree, and all 52 eligible normally ended recordings replayed
+with identical requests, commands, and stops through the two frozen scaffolds.
+See [the experiment record](experiments.md#2026-10-30--looplanggraph-control-ten-tasks-three-attempts-per-arm)
+and its per-arm CSVs for sources, dataset pin, settings, and task-level results.
+
+This ARM/amd64-emulation comparison completes the local control check. It
+does not establish general score parity or improvement, complete the full
+89-task native-x86 gate, or measure the benefit of any optional feature.
+Published elapsed-time fields are blank and no timing comparison is claimed.
+Keep all experiments off by default; collect the remaining evidence separately.
 
 ## Local correctness
 
