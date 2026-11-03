@@ -7,9 +7,9 @@ yet. Details for every number are in `docs/experiments.md`.
 
 ---
 
-**Title:** BadgerForge: what a small ReAct agent on Qwen3.8-27B learned from full-benchmark failures *(TODO: shorten)*
+**Title:** BadgerForge: learning from full-benchmark failures with a small ReAct agent
 
-**Subtitle:** Fixing how the agent handles cut-off and command-less replies took us from 0.438 to about 0.55 on Terminal-Bench 2.1; most other ideas measured as noise.
+**Subtitle:** Fixing how the agent handles cut-off and command-less replies took us from 0.438 to between 0.49 and 0.61 on Terminal-Bench 2.1; most other ideas measured as noise.
 
 ## Submission card
 
@@ -29,39 +29,62 @@ yet. Details for every number are in `docs/experiments.md`.
 The submitted run is decided in advance: the last full run on the final
 commit, whatever it scores. The report lists every full run.
 
+TODO before submitting: cover image (a `harbor view jobs` screenshot). The
+leaderboard score follows the competition page, not the older formula in
+`WRITEUP_TEMPLATE.md`: TB score − min(0.01, 0.01 × (total tokens / 89) / 100,000,000).
+
 ## 1. Summary
 
-TODO (3–5 sentences). Points to make:
-- Starter ReAct loop, kept simple; no new tools or multi-agent setup.
-- Biggest gains came from reading full-run failures: replies cut off at the
-  output limit, and replies that describe a step without running it.
-- Full runs 3–7 (three agent versions, none measurably different): 52, 44,
-  49, 54 and 47 of 89, mean 49.2/89 (0.553).
-- Most later ideas (self-checks, sampling settings, never giving up) changed
-  nothing measurable, and runs differ by about 4 tasks on their own.
+BadgerForge is a small ReAct agent on Qwen3.8-27B: each turn the model writes
+one bash command, the scaffold runs it, and the output comes back as the next
+message. Our gains came from reading full-benchmark failures and fixing what
+happens to replies that are cut off at the output limit or that describe a step
+without running it, together with a larger output budget and medium reasoning
+effort. Scores rose from 0.438 on the first full run to between 0.494 and 0.607
+on runs 3–7. Most later ideas, including self-checks, other sampling settings
+and never giving up, changed nothing we could measure, and one agent scored 52,
+44 and 49 of 89 on three runs. TODO: final TB score, total tokens and
+leaderboard score from the submitted run.
 
 ## 2. Architecture
 
-One task, start to finish (draft bullets; turn into prose):
-- **Start:** wait for any apt/dpkg the image left running, then a system
-  prompt with the rules and the task text.
-- **Each turn (at most 100):** send the whole conversation to the model
-  (reasoning effort medium, 16,384 output tokens, temperature 0.2, retries
-  on gateway errors).
-- **Parse the reply:** a bash block runs in the container (60 s limit; output
-  over 6,000 characters keeps its head and tail); `TASK_COMPLETE` ends the task.
-- **No command:** if the reply was cut off at the limit, keep only the last
-  2,000 characters of its reasoning and send a generic nudge. Otherwise
-  (announces a step, or empty) send a nudge that asks for the command itself
-  and sample the next reply at 0.7. Four command-less turns in a row: give up.
-- **Loop guard:** warn on a repeated command, refuse it after 3 repeats, stop
-  after 8 failing commands in a row.
-- **Serving:** the shared UW BadgerBrain gateway, concurrency 2, on a Windows
-  laptop running Harbor in WSL2.
+**Model and serving.** We use `Qwen/Qwen3.8-27B-FP8` through the UW BadgerBrain
+gateway, at reasoning effort medium, temperature 0.2 and 16,384 output tokens
+per reply. Harbor runs in WSL2 on a Windows laptop at concurrency 2.
+
+**Start.** Setup waits up to 120 s for any apt or dpkg process the image left
+running. The first request holds a system prompt with the rules and the task
+text.
+
+**Each turn, at most 100.** The whole conversation goes to the model, with
+retries on gateway errors. We don't compact history. On the tasks we checked,
+generation took more of a turn than input did, so compaction wouldn't speed
+turns up much, though it could still save input tokens.
+
+**Parsing.** The first complete fenced shell block runs in the container with a
+60 s limit. Stdout and stderr each keep their head and tail when over 6,000
+characters. Without a shell block, a line holding only `TASK_COMPLETE` ends the
+task.
+
+**Cut-off and empty replies.** A reply cut off at the output limit is reduced to
+its last 2,000 characters, and a reply with empty content is replaced by the last
+2,000 characters of its reasoning. That text goes into the history and is parsed
+like any other reply, so a command in it runs.
+
+**Replies without a command.** The agent nudges only when it finds no action:
+a generic nudge after a cut-off; otherwise a nudge asking for the command itself,
+with the next reply sampled at temperature 0.7. Four such replies in a row end
+the task.
+
+**Loop guard.** A repeated command gets a warning and is refused after 3
+repeats; 8 failing commands in a row end the task.
 
 ## 3. What we tried
 
-In order, one line each (TODO: trim to fit the word limit):
+We tested changes on 10–13 tasks with 3 trials each, ran both arms on the same
+day, and for the later runs set the bar for a result in advance. Pass counts
+alone were too noisy, so we also counted whether a change fired and what followed, and replayed
+recorded replies offline before merging parser changes.
 
 | Change | Result |
 |---|---|
@@ -84,32 +107,50 @@ In order, one line each (TODO: trim to fit the word limit):
 | LangGraph port, optional nodes off | no big drop; **full run 8: 0.517** |
 
 Analysis without runs: the system prompt's "no network" line didn't stop
-installs; turn time is spent on output, not input, so compacting history
-wouldn't help.
+installs; on the tasks we checked, generation took more of a turn than input,
+so compacting history wouldn't speed turns up much. We didn't test compaction
+itself.
 
 ## 4. Results
 
 - TODO: the submitted run's numbers, command and job name.
-- Full runs 3–7: 52, 44, 49, 54, 47 (mean 49.2/89, standard deviation 4,
-  close to what a single run's randomness predicts). 35 tasks passed in all
-  five, 27 in none, 27 go either way.
-- Full run 6, the best: 54/89, 0.60674 (wrong 14, timeouts 11, gave up 6,
-  turn cap 4), main at `925566b`.
-- LangGraph port, optional nodes off: 46/89, 0.51685 (full run 8).
-- TODO: per-category pattern, if we look at one.
+- Full runs 3–5, one agent (run 5 added a failure-stop switch that changed no
+  outcome): 52, 44 and 49 of 89.
+- Full run 6, main at `925566b` with the parser fixes: 54/89, 0.60674 (wrong 14,
+  timeouts 11, gave up 6, turn cap 4). Main has this one run so far.
+- Full run 7, main plus a change we didn't merge: 47/89, 0.52809.
+- Full run 8, LangGraph port with optional nodes off: 46/89, 0.51685.
+- Runs 3–7 span three agent versions, so their mean, 49.2/89 (0.553), describes
+  those experiments and isn't a stable score for main. Across them 35 tasks
+  passed in all five, 27 in none, 27 went either way.
 
 ## 5. Failure analysis
 
-Draft from the 10-20 analysis of the 24 tasks we solve only sometimes:
-- **Confident wrong answers:** 56 of 85 failures. In 53 of them the agent had
-  checked something, just not what the task required. Examples: query-optimize
-  never timed its query against the speed threshold; mteb-leaderboard ignored
-  the task's date cut-off; sqlite-with-gcov set PATH only in its own shell.
-- **Stuck on one approach:** build-pov-ray spent 54 of 100 commands on one
-  download mirror.
-- **Prose run as a command:** the parser could run the text between two code
-  blocks; 79 times in 18,368 recorded replies (Preston's parser fix).
-- TODO: pick 2–3 and write them up properly.
+A 10-20 analysis of the 24 tasks we then solved only sometimes, a different set
+from the 27 in Results, counted 56 confident wrong answers among 85 failures at
+main's settings. Failing and passing trials used about the same turns and time.
+That doesn't settle the cause, but the cases below suggest that how the agent
+verifies its work is an important problem.
+
+**Declaring success on a check that proves nothing: break-filter-js-from-html.**
+The task asks for a payload that gets past a filter and runs in a browser. In
+one trial the agent wrote `<svg OnLoad=alert(1)>`, ran `python test_outputs.py`
+and finished. That file only defines tests, so nothing ran. query-optimize
+failed the same way, never timing its query against the task's speed threshold.
+In 53 of the 56 wrong answers the agent had checked something, just not what the
+task required. Two forced checks before finishing didn't help: the model's own
+checks are looser than the graders' and re-confirm its first answer.
+
+**Stuck on one approach: protein-assembly.** In one batch, three trials spent 73
+to 88 turns searching RCSB and PDB until the time limit and never started the
+gBlock the task asks for. The search began going in circles before the first
+empty reply, so the empty replies were a symptom. build-pov-ray looks similar,
+with 54 of 100 commands on one download mirror.
+
+**Breaking its own environment: adaptive-rejection-sampler.** Installing R hit
+the 60 s command limit twice, so the agent ran `kill -9` on apt and dpkg. That
+left dpkg broken, the verifier couldn't install curl, and no test ran. In another
+run build-pov-ray ran `kill -9 -1` and took down its own container.
 
 ## 6. Borrowed and built
 
@@ -118,20 +159,25 @@ Draft from the 10-20 analysis of the 24 tasks we solve only sometimes:
   wording (no gain).
 - Badger Agents' published numbers as a reference point.
 - Qwen3.8-27B model card for the sampling experiment.
+- LangGraph for the port on our branch.
 - Ours: evaluation tooling (scoring, per-trial export, Windows/WSL runner,
   resume fixes), the cut-off and command-less handling, and the experiment log.
 
 ## 7. Limitations and next steps
 
-- Self-checks don't catch wrong answers; a check would need to run the
+- Self-checks don't catch wrong answers. A useful check would need to run the
   deliverable the way the grader does.
-- Run-to-run noise (about ±4 tasks) hides small improvements; we could only
+- Run-to-run noise of about 4 tasks hides small improvements, and we could only
   afford one trial per task on full runs.
 - One shared gateway GPU: turn speed varies with load and time of day.
 - WSL's clock drifted, so real time limits were 0.91 to 1.05 of nominal across
-  runs, with no visible link to score. TODO: give the submitted run's value.
-- Next: progress checks that switch approach when stuck; write the
-  deliverable as soon as there is a plausible answer.
+  runs, with no visible link to score. We don't know why. TODO: give the
+  submitted run's value.
+- A block inside a kept reasoning tail can still run. Stopping that removed
+  those failed commands but showed no gain, so we left it.
+- A LangGraph port with optional progress-check, early-deliverable and
+  output-shaping nodes exists on a branch. The port alone showed no big drop, but
+  the nodes are untested at benchmark scale.
 
 ## 8. Team contributions
 

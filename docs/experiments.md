@@ -177,6 +177,12 @@ curl and ran no tests.
 bash block with no closing fence and finished normally; the parser skips
 those, on main too (plan 36).
 
+**Trials cited in the writeup:** `break-filter-js-from-html__UZAfrAx`,
+`adaptive-rejection-sampler__kfYfcyY`, `protein-assembly__5vMmZDL` and
+`protein-assembly__Pcozoga` in `b4-pr37.csv`; `protein-assembly__CuxqHBu` in
+`b4-main.csv`. Also `build-pov-ray__kvYAyyw` in `full-run-5.csv`. Transcripts
+are in the job directories on the Windows box.
+
 ## 2026-10-26 — Full run 6: main at 925566b, 54/89
 
 - Code: main `925566b`, full runs 3–5's agent plus Preston's parser fixes:
