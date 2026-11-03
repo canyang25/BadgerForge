@@ -81,6 +81,7 @@ In order, one line each (TODO: trim to fit the word limit):
 | Failure stop as a reminder | changed no outcome |
 | Parser: matching code fences, `TASK_COMPLETE` on its own line | kept; **full run 6: 0.607** |
 | Never run commands from cut-off reasoning | no gain: 10/30 vs 14/30; full run 7: 0.528 |
+| LangGraph port, optional nodes off | no big drop; **full run 8: 0.517** |
 
 Analysis without runs: the system prompt's "no network" line didn't stop
 installs; turn time is spent on output, not input, so compacting history
@@ -94,6 +95,7 @@ wouldn't help.
   five, 27 in none, 27 go either way.
 - Full run 6, the best: 54/89, 0.60674 (wrong 14, timeouts 11, gave up 6,
   turn cap 4), main at `925566b`.
+- LangGraph port, optional nodes off: 46/89, 0.51685 (full run 8).
 - TODO: per-category pattern, if we look at one.
 
 ## 5. Failure analysis
@@ -126,6 +128,8 @@ Draft from the 10-20 analysis of the 24 tasks we solve only sometimes:
 - Run-to-run noise (about ±4 tasks) hides small improvements; we could only
   afford one trial per task on full runs.
 - One shared gateway GPU: turn speed varies with load and time of day.
+- WSL's clock drifted, so real time limits were 0.91 to 1.05 of nominal across
+  runs, with no visible link to score. TODO: give the submitted run's value.
 - Next: progress checks that switch approach when stuck; write the
   deliverable as soon as there is a plausible answer.
 

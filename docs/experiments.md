@@ -3,6 +3,54 @@
 Newest first. One entry per run we want to remember: what changed, what the
 numbers were, what we learned. Numbers come from `scripts/score.py`.
 
+## 2026-11-02 — Full run 8: LangGraph control on x86, 46/89
+
+- Code: `preston-test` at `d3afe4d`, the run 6 agent ported to LangGraph, with
+  the optional nodes off (progress, shaping, deliverable). Code defaults,
+  concurrency 2, GPU in hybrid mode.
+- 11-02 10:28 to 17:18 CST, 6 h 50 min, no reruns and no infrastructure
+  failures. The first start died in a blue screen before the key was read;
+  nothing was lost. Results: `eval/results/full-run-8.csv`.
+
+| | Full run 8 | Full run 7 | Full run 6 |
+|---|---|---|---|
+| Passes | 46 | 47 | 54 |
+| Wrong answers | 19 | 19 | 14 |
+| Timeouts | 11 | 8 | 11 |
+| Gave up | 9 | 10 | 6 |
+| Hit the 100-turn cap | 4 | 5 | 4 |
+| Tokens per task | 455k | 530k | 499k |
+
+TB 0.51685, total tokens 40,456,629, leaderboard 0.51681. Gateway median
+12 s/turn, no slow trials, no connection failures. All 89 trials have a node
+trace (7,024 rows) with no shape, progress or deliverable rows.
+
+**No big drop.** The bar set before the run was 42 (the loop's runs 3–7, mean
+49.2, less two deviations of 4). One run can't show that the graph matches the
+loop, only that it didn't lose a lot. Against run 6, 3 more passed and 11
+fewer. Of the 35 tasks that passed in all of runs 3–7, 2 failed, neither in a
+way that points at the graph: llm-inference-batching-scheduler spent 40 turns
+calculating and timed out without writing its plans, and overfull-hbox swapped
+"an" for "a" along with a listed synonym, which `synonyms.txt` doesn't allow.
+
+**Time limits ran short.** WSL's monotonic clock ran about 9% fast against
+Windows (120.26 s against 110.27 s), and Harbor's limits follow it: 900 s fired
+at about 820 s, 1800 s at about 1640 s. The seconds in the CSV are right. The
+median timeout against its nominal limit, runs 3 to 8: 1.03, 1.05, 0.97,
+0.92 → 1.00, 1.04, 0.91. Run 6's changed mid-run without an interruption, so
+it isn't fixed per boot. Cause unknown, not fixed. Over the six runs it shows
+no link to passes (correlation about −0.2, taking run 6 as 0.96). Here at
+most 2 timeouts could have passed with the full limit (adaptive-rejection-sampler,
+llm-inference-batching-scheduler), which would make 48.
+
+**Give-ups: 9 without #37.** Runs 3 to 8 gave up 7, 6, 7, 6, 10 and 9 times.
+Full run 7's rise can't all be #37's, since this agent handles empty replies
+as main does; 6 of the 9 tasks here also gave up in run 7.
+
+**Main stays the submission configuration.** The graph is fine to test
+features on; switching needs a feature that gains. Across runs 3–8, 33 tasks
+passed in all six, 26 in none, 30 go either way.
+
 ## 2026-10-29 — Analysis only: bash blocks with no closing fence (plan 36): not doing
 
 Batch 4 had 3 replies that ran nothing because their bash block never closed.
@@ -69,7 +117,8 @@ have run.
 reset the count; in 5 of the 10 give-ups main would have done so within the
 last 4 replies. All 10 tasks failed in run 6 too (4 gave up, 5 timed out, 1
 wrong), so this mostly turns timeouts into earlier give-ups, which matches
-plan 21.
+plan 21. Correction from full run 8: that run gave up 9 times without #37, so
+the rise from 6 to 10 can't all be #37's.
 
 **Not merged (plan 35).** Neither batch 4 nor this run shows a gain, and #37
 changes when the agent gives up. Preston closed it on 10-28; main stays at

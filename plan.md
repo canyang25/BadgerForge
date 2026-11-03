@@ -47,7 +47,8 @@ compared against the current best.
 0.584 (52/89, 10-12) with medium reasoning effort. Since then, with changes
 that moved nothing measurable: 0.494 (44/89), 0.551 (49/89), 0.607 (54/89,
 main at `925566b`, 10-26) and 0.528 (47/89, plan 35, 10-28). Runs 3–7: mean
-49.2/89 (0.553), standard deviation 4 tasks.**
+49.2/89 (0.553), standard deviation 4 tasks. The LangGraph port on
+`preston-test`, optional nodes off: 0.517 (46/89, 11-02), no big drop.**
 
 **Next: the writeup** (deadline Wed 2 Dec 2026, 23:59 Madison time, Kaggle).
 The submission configuration is main at `925566b`, whose agent is the one in
@@ -94,7 +95,7 @@ screen note).
 | 32 | Stop on 8 failures in a row only when every output is the same | Full run 5's build-pov-ray broke its own container (`kill -9 -1`) and kept going. Idea only | |
 | 33 | Progress check every ~10 turns or after 3 identical failures: say what changed, else switch approach | 5 sometimes-solved tasks get stuck on one approach (10-20 analysis). Define how to tell it fired before running | |
 | 34 | Write the deliverable as soon as there's a plausible answer, then improve it | 3 sometimes-solved tasks think without ever writing the file (10-20 analysis) | |
-| 35 | ~~Never run a command from cut-off reasoning; store an empty reply as an empty message (PR #37)~~ | No: batch 4 10/30 vs 14/30, full run 7 47/89 vs run 6's 54, no failure traced to it. Tail commands 23 → 0, but give-ups 6 → 10: empty replies now count toward the 4-strike rule. Not merged | preston ✗ |
+| 35 | ~~Never run a command from cut-off reasoning; store an empty reply as an empty message (PR #37)~~ | No: batch 4 10/30 vs 14/30, full run 7 47/89 vs run 6's 54, no failure traced to it. Tail commands 23 → 0. Empty replies now count toward the 4-strike rule, but full run 8 gave up 9 times without it, so its effect on give-ups is unclear. Not merged | preston ✗ |
 | 36 | ~~Run a bash block that has no closing fence when the reply finished normally~~ | Not doing: 34 of 23,144 recorded replies (0.15%, 25 trials), mostly build-pov-ray and protein-assembly. Each costs one turn, and after the nudge the next turn ran a command 31 times (7 the same one). Accepting them would also run 5 degenerate repetitions, 2 half statements and 5 commands trailed by leftover tool-call XML | ✗ |
 
 ## Phase 3 — LangGraph

@@ -121,6 +121,9 @@ powershell -ExecutionPolicy Bypass -File \\wsl.localhost\Ubuntu-24.04\home\<you>
 - Close browsers, game launchers and chat apps. The 16 GB laptop was down to
   0.3 GB free at the worst point with them open.
 - GlobalProtect connected.
+- Check WSL's clock against Windows over about two minutes, before and after
+  the run, and record both. Harbor's time limits follow WSL's clock, which has
+  run from 5% slow to 9% fast, so the real limit moves with it (full run 8).
 
 ## 7. Full run
 
