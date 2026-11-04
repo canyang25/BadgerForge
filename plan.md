@@ -63,7 +63,7 @@ screen note).
 |---|---|---|---|
 | 1 | ~~`LLM_REASONING_EFFORT=medium`~~ | Costs score on the old slice: 0.76 vs 0.86. Reversed at full scale by #13 | ruoshi ✅ |
 | 2 | ~~Remove `agent/loop_guard.py`~~ | Keep it: same score, 46% more tokens without it. The 0.86 was the truncation fix | ruoshi ✅ |
-| 3 | Turn cap (now 100) | Reversed: in the full run 6 tasks hit 100 turns with time left, and compile-compcert passed at 99. Try raising it | |
+| 3 | ~~Turn cap 100 → 150~~ | Adopted without its own test: it only acts on trials that reach 100 turns. Across full runs 3–8 those never passed except compile-compcert, which passed at 84, 92 and 99 turns and hit the cap twice with time left. Checked in the final run | ruoshi ✅ |
 | 4 | Parse model output into Pydantic models, retry on bad format | Fewer wasted turns on malformed replies? | |
 | 5 | ~~Why `chess-best-move` never passes~~ | Not by itself: it's a text-only model trying to read an image, without surveying the environment or installing tools. Root causes are general → #6 | ruoshi ✅ |
 | 6 | ~~System prompt: survey environment, prefer tools, no raw data~~ | No measurable gain (0.81 vs 0.86, within noise); the model mostly ignored the rules. Not merged | ruoshi ✗ |

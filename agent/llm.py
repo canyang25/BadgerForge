@@ -140,7 +140,8 @@ class LLMClient:
         # to the server, or to another level; measure before changing it.
         self.reasoning_effort = os.environ.get("LLM_REASONING_EFFORT", "medium") or None
         self.timeout = float(os.environ.get("LLM_TIMEOUT_SEC", "300"))
-        self.max_retries = int(os.environ.get("LLM_MAX_RETRIES", "5"))
+        # Attempts, not extra tries: 0 would skip the request and raise None.
+        self.max_retries = max(1, int(os.environ.get("LLM_MAX_RETRIES", "5")))
         # Whether the last reply hit max_tokens. The agent nudges a cut-off
         # reply differently from one that ended without a command.
         self.last_truncated = False
