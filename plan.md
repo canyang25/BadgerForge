@@ -48,14 +48,14 @@ compared against the current best.
 that moved nothing measurable: 0.494 (44/89), 0.551 (49/89), 0.607 (54/89,
 main at `925566b`, 10-26) and 0.528 (47/89, plan 35, 10-28). Runs 3–7: mean
 49.2/89 (0.553), standard deviation 4 tasks. The LangGraph port on
-`preston-test`, optional nodes off: 0.517 (46/89, 11-02), no big drop.**
+`preston-test`, optional nodes off: 0.517 (46/89, 11-02), no big drop. Its
+progress check (plan 33): no gain.**
 
 **Next: the writeup** (deadline Wed 2 Dec 2026, 23:59 Madison time, Kaggle).
-The submission configuration is main at `925566b`, whose agent is the one in
-full run 6 (full runs 3–5's plus Preston's parser fixes #34 and #36). A PR
-that changes the agent needs a new full run before the estimate applies to it.
-Further experiments only if they touch many tasks and we can check that they
-actually fire (plan 33 is the best left). Plan item numbers are not PR numbers.
+The submission configuration is main: full run 6's agent (full runs 3–5's
+plus Preston's parser fixes #34 and #36) with the turn cap at 150 (plan 3).
+No more experiments are planned; next is the final run on that commit. Plan
+item numbers are not PR numbers.
 Before long runs on the Windows laptop, see docs/setup-windows.md (the blue
 screen note).
 
@@ -63,7 +63,7 @@ screen note).
 |---|---|---|---|
 | 1 | ~~`LLM_REASONING_EFFORT=medium`~~ | Costs score on the old slice: 0.76 vs 0.86. Reversed at full scale by #13 | ruoshi ✅ |
 | 2 | ~~Remove `agent/loop_guard.py`~~ | Keep it: same score, 46% more tokens without it. The 0.86 was the truncation fix | ruoshi ✅ |
-| 3 | ~~Turn cap 100 → 150~~ | Adopted without its own test: it only acts on trials that reach 100 turns. Across full runs 3–8 those never passed except compile-compcert, which passed at 84, 92 and 99 turns and hit the cap twice with time left. Checked in the final run | ruoshi ✅ |
+| 3 | ~~Turn cap 100 → 150~~ | Adopted without a scored test: it only acts on trials that reach 100 turns. Across full runs 3–8 those never passed except compile-compcert, which passed at 84, 92 and 99 turns and hit the cap twice with time left. Smoke test on compile-compcert: 2/3, one passing at turn 110 and one at the cap | ruoshi ✅ |
 | 4 | Parse model output into Pydantic models, retry on bad format | Fewer wasted turns on malformed replies? | |
 | 5 | ~~Why `chess-best-move` never passes~~ | Not by itself: it's a text-only model trying to read an image, without surveying the environment or installing tools. Root causes are general → #6 | ruoshi ✅ |
 | 6 | ~~System prompt: survey environment, prefer tools, no raw data~~ | No measurable gain (0.81 vs 0.86, within noise); the model mostly ignored the rules. Not merged | ruoshi ✗ |
@@ -93,7 +93,7 @@ screen note).
 | 30 | ~~Requirement checklist before finishing~~ | No: 20/39 with and without on the 13 tasks that most often finish wrong. It always ran, but its checks were looser than the graders'. Not merged (`ruoshi/feat-checklist-and-guard`) | ruoshi ✗ |
 | 31 | ~~Loop guard: remind instead of stopping after 8 failures in a row~~ | No measured gain: in batch 3 it never fired; in full run 5 it fired twice, both on trials that failed anyway. Not merged | ruoshi ✗ |
 | 32 | Stop on 8 failures in a row only when every output is the same | Full run 5's build-pov-ray broke its own container (`kill -9 -1`) and kept going. Idea only | |
-| 33 | Progress check every ~10 turns or after 3 identical failures: say what changed, else switch approach | 5 sometimes-solved tasks get stuck on one approach (10-20 analysis). Define how to tell it fired before running | |
+| 33 | ~~Progress check every ~10 turns or after 3 identical failures: say what changed, else switch approach~~ | No: batch 5, 10/18 vs 8/18 on 6 tasks that mostly lose on time. Timeouts 7 → 4, but it fired 49 times and changed approach only 6, and turns were slower. Not adopted | preston, ruoshi ✗ |
 | 34 | Write the deliverable as soon as there's a plausible answer, then improve it | 3 sometimes-solved tasks think without ever writing the file (10-20 analysis) | |
 | 35 | ~~Never run a command from cut-off reasoning; store an empty reply as an empty message (PR #37)~~ | No: batch 4 10/30 vs 14/30, full run 7 47/89 vs run 6's 54, no failure traced to it. Tail commands 23 → 0. Empty replies now count toward the 4-strike rule, but full run 8 gave up 9 times without it, so its effect on give-ups is unclear. Not merged | preston ✗ |
 | 36 | ~~Run a bash block that has no closing fence when the reply finished normally~~ | Not doing: 34 of 23,144 recorded replies (0.15%, 25 trials), mostly build-pov-ray and protein-assembly. Each costs one turn, and after the nudge the next turn ran a command 31 times (7 the same one). Accepting them would also run 5 degenerate repetitions, 2 half statements and 5 commands trailed by leftover tool-call XML | ✗ |
