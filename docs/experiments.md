@@ -3,6 +3,75 @@
 Newest first. One entry per run we want to remember: what changed, what the
 numbers were, what we learned. Numbers come from `scripts/score.py`.
 
+## 2026-11-04 — Batch 5: progress check (plan 33) on the LangGraph port: no
+
+- Code: `preston-test` at `d3afe4d`; `control` against `progress`
+  (`AGENT_PROGRESS_CHECK=1`: a check every 10 turns, or after 3 identical
+  failures). Launcher base flags otherwise, turn cap 100.
+- 6 tasks that mostly lose on time: adaptive-rejection-sampler, gcode-to-text,
+  llm-inference-batching-scheduler, password-recovery, protein-assembly,
+  rstan-to-pystan. protein-assembly replaced polyglot-rust-c, whose timeouts
+  come at 7–11 turns, too few for a check every 10.
+- Three rounds of one trial per task per arm, alternating (control then
+  progress, progress then control, control then progress), concurrency 2.
+  11-04 15:38 to 22:55 CST. A blue screen (0x10E, GPU in hybrid mode) stopped
+  it from 17:19 to 19:15; the one interrupted trial was rerun. No gateway or
+  container failures. Results: `eval/results/b5-control.csv`, `b5-progress.csv`.
+
+| | control | progress |
+|---|---|---|
+| Passes | 8/18 | 10/18 |
+| Timeouts | 7 | 4 |
+| Wrong answers | 3 | 4 |
+| Tokens per trial | 573k | 608k |
+| Median s/turn | 18.6 | 21.8 |
+
+Per task, control then progress: adaptive-rejection-sampler 1, 2;
+gcode-to-text 0, 0; llm-inference-batching-scheduler 1, 2; password-recovery
+1, 2; protein-assembly 3, 1; rstan-to-pystan 2, 3. One progress trial of
+adaptive-rejection-sampler hit the time limit, but its files passed.
+
+**No gain by the bar set beforehand** (6 or more ahead). Timeouts fell from 7 to
+4, which is what it aims at, but protein-assembly went from 3/3 to 1/3 and
+turns took longer.
+
+**It fired, but rarely changed course.** 49 checks in 16 of 18 trials, all
+periodic; the identical-failures trigger never fired. The other 2 trials were
+gcode-to-text runs that ended by turn 7. In the 3 commands after a check: a
+clear change of approach 6 times, a brief change and back 3, the same stuck
+idea 6, only a different way of waiting on a long job 9, normal progress on
+the plan 25. In the 5 progress trials that hit the time limit, the checks'
+replies cost roughly 10 s to 2.5 min per trial. One reply to a check
+(llm-inference-batching-scheduler, turn 20) spent the whole 16,384-token budget
+thinking and was cut off.
+
+**Not adopted (plan 33).**
+
+**Time limits.** WSL's clock read 1.000 right after WSL started (14:27, and
+19:15 after the blue screen) and 1.083 within half an hour, where it stayed:
+900 s limits fired at 831 s, 1,800 s at 1,662 s. Alternating kept the arms even.
+The rerun rstan-to-pystan started soon after the restart and passed at
+1,470 s, under either limit.
+
+**Tooling.** `scripts/run_experiment.sh` on `d3afe4d` lacks the exec bit; run it
+with `bash`. r1-progress's `experiment.json` still says `running`, since its
+launcher died in the blue screen.
+
+## 2026-11-04 — Smoke test: turn cap 150 (plan 3)
+
+- Code: `ruoshi/feat-turn-cap-150` (`f82fb80`): default cap 150, `stop_reason`
+  `max_turns` when every turn is used, at least one request attempt.
+  compile-compcert, 3 trials, concurrency 2, 11-04 14:33 to 15:13 CST.
+  Results: `eval/results/smoke-turns150.csv`.
+- 2 of 3 passed. One finished at turn 110, after checking `ccomp` and running
+  `make install`; the old cap would have stopped it at 100, before the install.
+  One used all 150 turns: it fixed a menhir/menhirLib version mismatch, built
+  `ccomp` at turn 142 and was still testing at the cap; it passed, and
+  `stop_reason` read `max_turns`. The third failed at turn 66, stopped by the
+  loop guard after 8 failing commands. No exceptions.
+- 3 trials can't show a gain, but the change works in a real run. Adopted
+  (plan 3).
+
 ## 2026-11-02 — Full run 8: LangGraph control on x86, 46/89
 
 - Code: `preston-test` at `d3afe4d`, the run 6 agent ported to LangGraph, with

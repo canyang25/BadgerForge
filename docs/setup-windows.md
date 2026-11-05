@@ -124,6 +124,8 @@ powershell -ExecutionPolicy Bypass -File \\wsl.localhost\Ubuntu-24.04\home\<you>
 - Check WSL's clock against Windows over about two minutes, before and after
   the run, and record both. Harbor's time limits follow WSL's clock, which has
   run from 5% slow to 9% fast, so the real limit moves with it (full run 8).
+  In batch 5 it read 1.00 right after WSL started and 1.08 within half an
+  hour, where it stayed.
 
 ## 7. Full run
 
@@ -183,6 +185,7 @@ picked from, and it lets anyone analyse the run without the Windows machine.
 - **Blue screen during a long run (`nvlddmkm.sys`, error 0x7E).** The NVIDIA
   driver crashed (617.42 on 2026-10-16). Runs don't use the discrete GPU:
   switch it to Eco mode in Armoury Crate before starting, or update the driver.
+  It happened again as 0x10E in hybrid mode on 11-02 and 11-04.
   Then resume; finished trials are kept.
 - **`wsl` commands fail with `Wsl/Service/WSAETIMEDOUT` but the run goes on.**
   Windows is out of memory; the VM is holding page cache. `wsl -l -v` still
