@@ -1,0 +1,4 @@
+task,trial_id,reward,outcome,turns,input_tokens,output_tokens,seconds,exception,stop_reason
+compile-compcert,compile-compcert__48CGhQY,1.0,pass,110,1414156,11237,1268.8,,
+compile-compcert,compile-compcert__GiYH5of,0.0,wrong_answer,66,427420,11435,644.7,,
+compile-compcert,compile-compcert__Kps8oGa,1.0,pass,150,2886745,25158,1694.0,,max_turns
