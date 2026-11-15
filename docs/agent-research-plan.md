@@ -84,6 +84,23 @@ Its critic also rejected 60 of 282 first proposals that already passed.
 Measure that tradeoff with our model and budget before committing to a
 verifier. [Probe-and-Resume](https://arxiv.org/html/2610.21088v1#S4)
 
+## First experiment
+
+Use the saved traces to pick a small slice across different output types,
+including tasks with passing and failing runs. The saved trials have grades
+and command traces, and their artifact manifests are empty. Run a fresh
+control sample and capture the relevant candidate files when the agent first
+claims completion. Save the public task instructions, time remaining, and
+Harbor's grade for that candidate.
+
+Try one task-generic executable check on each captured candidate in an
+isolated copy. Run it after the control trial so its time can be measured
+alongside the time that was available at the completion claim. Compare its
+verdict with Harbor's grade. Count demonstrated errors, flags on passing
+candidates, inconclusive outcomes, and the extra seconds and tokens. Use
+those results to decide whether a live test with one bounded repair is worth
+running.
+
 ## Where the loop changes would fit
 
 The agent proposes a command, the guard decides whether to run it, and the
@@ -126,3 +143,10 @@ dependent task. [Promotion guide](promoting-changes.md)
   compact trial exports. Compare which tasks gained or lost passes,
   activation coverage, timeouts, tokens, and elapsed time. Repeat a close
   comparison before changing the default profile. [Experiment log](experiments.md)
+
+## Cleanup reminder
+
+At each checkpoint, delete disposable scratch files, generated caches, and
+superseded exports after verifying the retained evidence. Keep user files,
+the final exports, and the manifests and artifacts needed for active work or
+reproducing the result.
