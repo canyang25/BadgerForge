@@ -146,7 +146,9 @@ Implemented extensions, with behavior validation still separate:
   single vs multiple agents
 
 See the [checkpoint and loop recovery implementation plan](docs/checkpoint-loop-recovery.md)
-for the next two PRs on `preston-test`.
+for the first two experiments on `preston-test`. Both PRs have landed.
+The [completion verification rollout](docs/verification-rollout.md) gives the
+next PRs, the checkpoints between them, and the first matched full run.
 
 ## Open questions
 

@@ -77,4 +77,5 @@ tokens with `control` on the same tasks.
 
 A separate completion verifier is a follow-up experiment. Its first test should
 exercise an explicit deliverable requirement and return the observed mismatch
-to the agent for a bounded repair.
+to the agent for a bounded repair. See the [verification rollout](verification-rollout.md)
+for its PR sequence and full-run checkpoints.
