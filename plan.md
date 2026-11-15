@@ -147,8 +147,8 @@ Implemented extensions, with behavior validation still separate:
 
 See the [checkpoint and loop recovery implementation plan](docs/checkpoint-loop-recovery.md)
 for the first two experiments on `preston-test`. Both PRs have landed.
-The [completion verification rollout](docs/verification-rollout.md) gives the
-next PRs, the checkpoints between them, and the first matched full run.
+The [research plan](docs/agent-research-plan.md) lists the candidate changes,
+how to choose the next PRs, and when to run the full benchmark.
 
 ## Open questions
 
