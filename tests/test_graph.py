@@ -123,6 +123,29 @@ def test_a_repeated_command_is_refused_before_it_runs(monkeypatch, tmp_path):
     assert refused == ["guard"]
 
 
+@pytest.mark.parametrize("enabled", [False, True])
+def test_loop_recovery_uses_the_next_turn_and_refuses_one_retry(monkeypatch, tmp_path, enabled):
+    monkeypatch.setattr(agent_module, "LOOP_RECOVERY", enabled)
+    commands = [f"curl https://example.org/{path}" for path in ("a", "b", "c")]
+    requested = [*commands, commands[0], "ls /app"]
+    replies = [(f"```bash\n{command}\n```", False) for command in requested] + [(DONE, False)]
+    llm, env, context = run(monkeypatch, tmp_path, replies, stdout="HTTP Error 403: Forbidden")
+    trace = [
+        (row["turn"], row["recovery_action"], row["recovery_site"])
+        for row in context.metadata["node_trace"] if "recovery_action" in row
+    ]
+    assert len(llm.temperatures) == 6
+    assert context.metadata["finished"] is True
+    if enabled:
+        assert trace == [(3, "suggest_pivot", "example.org"), (4, "decline_retry", "example.org")]
+        assert env.commands == [*commands, "ls /app"]
+        assert "Three consecutive commands reported HTTP 403 from example.org." in user_text(context)
+        assert "Skipped this retry after repeated HTTP 403" in user_text(context)
+    else:
+        assert trace == []
+        assert env.commands == requested
+
+
 def test_eight_failures_in_a_row_stop_the_task(monkeypatch, tmp_path):
     replies = [(f"```bash\ncmd{i}\n```", False) for i in range(CONSECUTIVE_FAILURE_ABORT_AT)]
     llm, env, context = run(monkeypatch, tmp_path, replies, return_code=1)

@@ -40,6 +40,7 @@ def runner(tmp_path):
         "LLM_MODEL=test-model\nLLM_API_KEY=private-test-sentinel\n"
         "AGENT_PROGRESS_CHECK=1\nAGENT_OBSERVATION_SHAPE=1\nAGENT_MAX_TURNS=999\n"
         "AGENT_EARLY_DELIVERABLE=1\nAGENT_DELIVERABLE_TURN=42\n"
+        "AGENT_LOOP_RECOVERY=1\n"
     )
     environment = {**os.environ, "PATH": f"{binaries}:{os.environ['PATH']}",
                    "ENV_FILE": str(env_file), "TB_TASKS": str(dataset.resolve()),
@@ -54,13 +55,13 @@ def runner(tmp_path):
     return run
 
 
-@pytest.mark.parametrize("profile, turns, progress, shaping, deliverable", [
-    ("control", "100", "0", "0", "0"), ("progress", "100", "1", "0", "0"),
-    ("turns150", "150", "0", "0", "0"), ("shaping", "100", "0", "1", "0"),
-    ("deliverable", "100", "0", "0", "1"),
+@pytest.mark.parametrize("profile, turns, progress, shaping, deliverable, recovery", [
+    ("control", "100", "0", "0", "0", "0"), ("progress", "100", "1", "0", "0", "0"),
+    ("turns150", "150", "0", "0", "0", "0"), ("shaping", "100", "0", "1", "0", "0"),
+    ("deliverable", "100", "0", "0", "1", "0"), ("loop-recovery", "100", "0", "0", "0", "1"),
 ])
 def test_profiles_override_gateway_file_and_record_only_selected_settings(
-    runner, tmp_path, profile, turns, progress, shaping, deliverable
+    runner, tmp_path, profile, turns, progress, shaping, deliverable, recovery
 ):
     result = runner(profile)
     assert result.returncode == 0, result.stderr
@@ -69,7 +70,8 @@ def test_profiles_override_gateway_file_and_record_only_selected_settings(
     actual = json.loads((tmp_path / "record").read_text())
     for key, expected in (("AGENT_MAX_TURNS", turns), ("AGENT_PROGRESS_CHECK", progress),
                           ("AGENT_OBSERVATION_SHAPE", shaping),
-                          ("AGENT_EARLY_DELIVERABLE", deliverable), ("AGENT_DELIVERABLE_TURN", "5")):
+                          ("AGENT_EARLY_DELIVERABLE", deliverable), ("AGENT_DELIVERABLE_TURN", "5"),
+                          ("AGENT_LOOP_RECOVERY", recovery)):
         assert actual["flags"][key] == manifest["settings"][key] == expected
     assert manifest["commit"] == "commit123"
     assert manifest["settings"]["LLM_MODEL"] == "test-model"

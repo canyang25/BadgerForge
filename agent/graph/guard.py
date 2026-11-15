@@ -9,7 +9,7 @@ from agent.state import AgentState
 
 async def guard(state: AgentState, runtime: Runtime[GraphContext]) -> dict:
     ctx = runtime.context
-    verdict = state.guard.before(state.command)
+    verdict = state.guard.before(state.command, recover_denials=ctx.loop_recovery)
     state.run_command = verdict.run
     state.before_note = verdict.note
     if not verdict.run:
@@ -18,6 +18,8 @@ async def guard(state: AgentState, runtime: Runtime[GraphContext]) -> dict:
         )
         state.messages.append({"role": "user", "content": verdict.note})
     record(state, ctx, "guard")
+    if verdict.denied_site:
+        state.node_trace[-1].update(recovery_action="decline_retry", recovery_site=verdict.denied_site)
     sync(state, ctx.harbor)
     return {
         "messages": state.messages,

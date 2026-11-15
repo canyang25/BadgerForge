@@ -17,8 +17,17 @@ async def execute(state: AgentState, runtime: Runtime[GraphContext]) -> dict:
         ctx.environment, state.command, timeout_sec=ctx.command_timeout_sec
     )
     return_code = parse_exit_code(observation)
-    after = state.guard.after(state.command, return_code)
+    after = state.guard.after(
+        state.command, return_code, observation=observation if ctx.loop_recovery else ""
+    )
     note = state.before_note or after.note
+    denied_site = state.guard.new_denial_streak() if ctx.loop_recovery else None
+    if denied_site:
+        pivot = (
+            f"Three consecutive commands reported HTTP 403 from {denied_site}. "
+            "Use a different source or a local approach in your next command."
+        )
+        note = f"{note}\n\n{pivot}" if note else pivot
     content = observation_message(observation)
     if note:
         content = f"{content}\n\n{note}"
@@ -33,6 +42,8 @@ async def execute(state: AgentState, runtime: Runtime[GraphContext]) -> dict:
         state.stopped_by_guard = "consecutive_failures"
         ctx.logger.info("stopping: %s", after.note)
     record(state, ctx, "execute")
+    if denied_site:
+        state.node_trace[-1].update(recovery_action="suggest_pivot", recovery_site=denied_site)
     sync(state, ctx.harbor)
     return {
         "messages": state.messages,
