@@ -101,6 +101,38 @@ candidates, inconclusive outcomes, and the extra seconds and tokens. Use
 those results to decide whether a live test with one bounded repair is worth
 running.
 
+## Pilot checkpoint on November 15
+
+Six control trials at `e2eba49` reached completion and saved their files before
+Harbor graded them. The grader passed one of three cancellation submissions
+and all three regex submissions. The general generated probe missed both
+cancellation failures. The edge-case prompt flagged the passing submission
+with a fixture that violated the public input contract. Three of six
+generation requests reached the 4,096-token cap. A manual fixture using the
+public interface and a real interrupt reproduced incomplete cleanup on both
+failures and observed complete cleanup on the pass.
+
+A separate replay compared medium and low reasoning effort on the final
+already-budgeted retry of six saved commandless stops. After an output
+cutoff, low effort returned syntactically valid shell commands in 2/4
+replays and medium did so in 0/4. One command wrote candidate code and the
+other reread inputs. Median request time on those four was 57 s at low and
+114 s at medium. The other two prefixes yielded commands in 1/2 low and
+2/2 medium replays. These measures describe one model turn. A live trial
+has to show whether the recovered command improves the Harbor grade.
+
+1. **Test lower effort on the last retry after a cutoff.** Add an opt-in
+   setting for that one call, using the existing streak and cutoff fields.
+   Keep the prompt, token cap, and number of retries fixed in the live
+   comparison. Use a matched small Harbor run across the two affected task
+   types and a normally passing control. Record trigger coverage, commands,
+   official passes, wall time, and tokens.
+2. **Test how we construct a probe fixture.** Give the probe one observable
+   public requirement and its exact input interface. Check generated
+   fixtures against known passing and failing examples across more output
+   types. Measure false flags, generation failures, and wall time before
+   selecting a repair experiment.
+
 ## Where the loop changes would fit
 
 The agent proposes a command, the guard decides whether to run it, and the
@@ -131,10 +163,10 @@ dependent task. [Promotion guide](promoting-changes.md)
 - **After each PR** record the merge SHA, profile, test and pilot results,
   and next task. When a pilot checks a candidate artifact, record which
   artifact was checked, the verdict, and the final Harbor outcome.
-- **After each major batch of two or three related implementation PRs** run
-  the current control and the selected candidate on all 89 tasks, one trial
-  per task per arm. This is the first full-run milestone for whichever
-  change the research selects. Use one frozen SHA, the dataset at
+- **After two or three related changes show repeatable gains in small Harbor
+  runs** bring the full comparison back for a decision. The comparison pairs
+  the current control and selected candidate on all 89 tasks, one trial per
+  task per arm. Use one frozen SHA, the dataset at
   `7131e4375048a0e408a8fb404b5f499d726b695b`, the same model and flags apart
   from the experiment, and matched x86 clocks and per-task limits. Pass all
   89 task names to the launcher and preview both manifests.
