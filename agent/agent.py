@@ -64,6 +64,7 @@ Environment variables
   tells the model when output was cut. Both are off unless set.
 - ``AGENT_EARLY_DELIVERABLE`` — ``1`` asks for a first plausible deliverable
   after ``AGENT_DELIVERABLE_TURN`` (default 5). Off unless set.
+- ``AGENT_LOOP_RECOVERY`` — ``1`` responds to repeated HTTP 403s from one site.
 """
 
 import os
@@ -101,6 +102,7 @@ PROGRESS_EVERY = int(os.environ.get("AGENT_PROGRESS_EVERY", "10"))
 OBSERVATION_SHAPE = os.environ.get("AGENT_OBSERVATION_SHAPE", "") == "1"
 EARLY_DELIVERABLE = os.environ.get("AGENT_EARLY_DELIVERABLE", "") == "1"
 DELIVERABLE_TURN = int(os.environ.get("AGENT_DELIVERABLE_TURN", "5"))
+LOOP_RECOVERY = os.environ.get("AGENT_LOOP_RECOVERY", "") == "1"
 """Temperature for the request after a reply that ended without a command
 and wasn't cut off. Those replies announce a step ("Let's start by exploring
 the environment.") and never take it; the wording drifts, the decision not to
@@ -192,5 +194,6 @@ class BaselineAgent(BaseAgent):
                 observation_shape=OBSERVATION_SHAPE,
                 early_deliverable=EARLY_DELIVERABLE,
                 deliverable_turn=DELIVERABLE_TURN,
+                loop_recovery=LOOP_RECOVERY,
             ),
         )

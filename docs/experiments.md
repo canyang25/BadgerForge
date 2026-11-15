@@ -3,6 +3,20 @@
 Newest first. One entry per run we want to remember: what changed, what the
 numbers were, what we learned. Numbers come from `scripts/score.py`.
 
+## 2026-11-14 — Loop recovery replay for repeated HTTP 403s
+
+- Replayed the command and observation pairs in 78 locally saved, graded
+  trajectories. The candidate trigger is three consecutive commands that
+  report HTTP 403 for the same site. Treat the `www.` spelling as the same
+  site for this trigger.
+- Two of 26 failed trajectories fired, both `protein-assembly` runs. The
+  trigger reached `fpbase.org` at turns 12 and 14. None of the 52 passing
+  trajectories fired. The commands in those streaks differed, and the shell
+  returned zero because the commands caught and printed the HTTP errors.
+- Test one prompt to change sources at the third denial. Let changed commands
+  run and intercept one immediate retry of a command from the failed streak.
+  Compare the opt-in `loop-recovery` arm with `control` before changing defaults.
+
 ## 2026-10-30 — Loop/LangGraph control: ten tasks, three attempts per arm
 
 - Frozen loop: `cb8c3d3c36641feff342dc9729cafa7d8d05f78c`.

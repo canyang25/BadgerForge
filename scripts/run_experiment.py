@@ -21,12 +21,14 @@ BASE_FLAGS = {
     "AGENT_PROGRESS_CHECK": "0", "AGENT_PROGRESS_EVERY": "10",
     "AGENT_OBSERVATION_SHAPE": "0",
     "AGENT_EARLY_DELIVERABLE": "0", "AGENT_DELIVERABLE_TURN": "5",
+    "AGENT_LOOP_RECOVERY": "0",
 }
 PROFILES = {
     "control": {}, "progress": {"AGENT_PROGRESS_CHECK": "1"},
     "turns150": {"AGENT_MAX_TURNS": "150"},
     "shaping": {"AGENT_OBSERVATION_SHAPE": "1"},
     "deliverable": {"AGENT_EARLY_DELIVERABLE": "1"},
+    "loop-recovery": {"AGENT_LOOP_RECOVERY": "1"},
 }
 MODEL_DEFAULTS = {
     "LLM_MODEL": "", "LLM_TEMPERATURE": "0.2", "LLM_MAX_TOKENS": "16384",

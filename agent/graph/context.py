@@ -29,3 +29,4 @@ class GraphContext:
     observation_shape: bool = False
     early_deliverable: bool = False
     deliverable_turn: int = 5
+    loop_recovery: bool = False

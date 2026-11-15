@@ -65,6 +65,59 @@ def test_one_success_resets_the_failure_run():
     assert not run(guard, "bad-again", return_code=1).stop
 
 
+FORBIDDEN = "exit code: 0\nstdout:\nHTTP Error 403: Forbidden"
+
+
+def test_denials_from_one_site_allow_one_refusal_of_a_failed_command():
+    guard = LoopGuard()
+    commands = [
+        "curl https://www.example.org/a",
+        "curl https://example.org/b",
+        "wget https://www.example.org/c",
+    ]
+    for command in commands[:2]:
+        guard.after(command, 0, observation=FORBIDDEN)
+        assert guard.new_denial_streak() is None
+    guard.after(commands[2], 0, observation=FORBIDDEN)
+    assert guard.new_denial_streak() == "example.org"
+    assert guard.before(commands[0]).run
+    assert guard.before("curl https://example.org/d", recover_denials=True).run
+
+    verdict = guard.before(commands[0], recover_denials=True)
+    assert not verdict.run
+    assert verdict.denied_site == "example.org"
+    assert guard.before(commands[1], recover_denials=True).run
+
+
+def test_denial_streak_crosses_its_threshold_once_and_resets_after_success():
+    guard = LoopGuard()
+    for attempt in range(4):
+        guard.after(f"curl https://example.org/{attempt}", 0, observation=FORBIDDEN)
+    assert guard.new_denial_streak() is None
+    guard.after("curl https://example.org/ok", 0, observation="exit code: 0\nHTTP/2 200")
+    for attempt in range(3):
+        guard.after(f"curl https://example.org/fail{attempt}", 22, observation=FORBIDDEN)
+    assert guard.new_denial_streak() == "example.org"
+    assert not guard.before("curl https://example.org/fail0", recover_denials=True).run
+
+
+@pytest.mark.parametrize("command, observation", [
+    ("curl https://example.org/c", "exit code: 22\nHTTP/2 429"),
+    ("curl https://example.org/c", FORBIDDEN + "\nHTTP/2 200"),
+    ("curl https://example.org/c https://other.example/c", FORBIDDEN),
+    ("curl https://other.example/c", FORBIDDEN),
+    ("python saved_request.py", FORBIDDEN),
+    ("curl https://example.org/c", "[command did not complete: timeout]"),
+])
+def test_ambiguous_or_different_observations_break_the_streak(command, observation):
+    guard = LoopGuard()
+    for suffix in ("a", "b"):
+        guard.after(f"curl https://example.org/{suffix}", 0, observation=FORBIDDEN)
+    guard.after(command, 0, observation=observation)
+    assert guard.new_denial_streak() is None
+    assert guard.before("curl https://example.org/a", recover_denials=True).run
+
+
 @pytest.mark.parametrize(
     "observation,expected",
     [
