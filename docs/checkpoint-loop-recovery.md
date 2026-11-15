@@ -25,6 +25,7 @@ spent 40 turns and timed out before writing its plans. [Smoke test](experiments.
 Use one clean `preston-test` commit, the same Docker host and Qwen settings,
 and Terminal-Bench 2.1 at `7131e4375048a0e408a8fb404b5f499d726b695b`. Run three
 rounds with one trial per task in each arm. Reverse arm order in round two.
+The scheduler and protein tasks each have a 30-minute agent limit.
 Use a fresh job prefix for each pilot. Add `--dry-run` to preview settings and
 the dataset pin. [Launcher instructions](langgraph-evaluation.md#controlled-benchmark-runs)
 
@@ -43,25 +44,29 @@ done
 ```
 
 Record Harbor reward, timeouts, tokens, and the turn when the checkpoint
-appears. Inspect the first successful command that writes a candidate at the
-required path and record its turn. Use the final Harbor result to judge whether
-the candidate ultimately became a passing submission. Expand the pilot if the
-checkpoint gets a usable artifact written earlier on a failing task and the
-extra passes recur while the passing control holds up.
+appears. Read `agent_result.metadata.node_trace` for activation and match the
+shell commands in `agent_result.metadata.messages` to their observations.
+Record the first observed write to the required path. Use the final Harbor
+result to judge whether the run produced a passing submission. Expand the
+pilot if the checkpoint gets a usable artifact written earlier on a failing
+task and the extra passes recur while the passing control holds up.
 
 ## PR 2 — Loop recovery
 
 Replay the detector on existing failed and passing transcripts. The six local
 `protein-assembly` trials contain no exact A–B–A–B command cycles. Some failures
 show repeated HTTP access denials from one site even though the commands vary.
-Check how often a conservative trigger sees that pattern on both outcomes.
+Use three consecutive observations that report HTTP 403 from one named site.
+Use the literal URLs in the command to identify the site. An observation with
+another HTTP status or a command that names several sites breaks the streak.
 
 Use the existing execution observation and loop guard for a single recovery
 message when the trigger fires. Include the observed failure and ask the model
 to change its approach on the next normal turn. Limit any command refusal to
 one retry of the same failed command. Put the behavior behind its own
 `loop-recovery` experiment profile. Keep the checkpoint disabled in that
-comparison.
+comparison. The execute and guard trace rows record the recovery action and
+site when the hint or refusal fires. [Loop recovery PR](https://github.com/canyang25/BadgerForge/pull/58)
 
 Test the trigger, a changed command, recovery after a successful attempt, and
 the disabled profile. In the live comparison, count triggers, inspect the next
