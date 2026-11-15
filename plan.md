@@ -145,6 +145,9 @@ Implemented extensions, with behavior validation still separate:
 - Then experiment: planning and verification nodes, agent instructions,
   single vs multiple agents
 
+See the [checkpoint and loop recovery implementation plan](docs/checkpoint-loop-recovery.md)
+for the next two PRs on `preston-test`.
+
 ## Open questions
 
 - ~~TB 2.0 or 2.1?~~ **2.1**, confirmed 9/23. The challenge repo still says
