@@ -3,7 +3,8 @@
 from langgraph.runtime import Runtime
 
 from agent.graph.context import GraphContext
-from agent.graph.trace import record, sync
+from agent.graph.deadline import add_deadline_notice
+from agent.graph.trace import measure_step, record, sync
 from agent.state import AgentState
 from agent.tools import parse_action
 
@@ -11,14 +12,16 @@ from agent.tools import parse_action
 async def call_model(state: AgentState, runtime: Runtime[GraphContext]) -> dict:
     ctx = runtime.context
     turns = state.turns + 1
-    text, usage = await ctx.llm.chat(state.messages, temperature=state.next_temperature)
+    add_deadline_notice(state, ctx)
+    with measure_step(ctx, "call_model", turns) as timing:
+        text, usage = await ctx.llm.chat(state.messages, temperature=state.next_temperature)
     bumped = state.next_temperature is not None
     state.turns = turns
     state.next_temperature = None
     state.n_input += int(usage.get("prompt_tokens") or 0)
     state.n_output += int(usage.get("completion_tokens") or 0)
     state.last_truncated = bool(ctx.llm.last_truncated)
-    record(state, ctx, "call_model", usage)
+    record(state, ctx, "call_model", usage, **timing)
     state.messages.append({"role": "assistant", "content": text})
 
     action = parse_action(text)

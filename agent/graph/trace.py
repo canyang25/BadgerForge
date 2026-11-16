@@ -6,32 +6,61 @@ up in the same list. This stays on the process: plan.md leaves LangSmith off
 until the team agrees to send transcripts out.
 """
 
+from asyncio import CancelledError
+from contextlib import contextmanager
+from time import monotonic
+
 from harbor.models.agent.context import AgentContext
 
 from agent.graph.context import GraphContext
 from agent.state import AgentState
 
 
+@contextmanager
+def measure_step(ctx: GraphContext, node: str, turn: int):
+    """Time an external wait and retain its elapsed time if the run ends there."""
+    started = monotonic()
+    timing = {}
+    try:
+        yield timing
+    except (CancelledError, Exception) as exc:
+        elapsed = round(monotonic() - started, 3)
+        if ctx.harbor.metadata is None:
+            ctx.harbor.metadata = {}
+        ctx.harbor.metadata["interrupted_step"] = {
+            "node": node, "turn": turn, "elapsed_sec": elapsed, "exception": type(exc).__name__
+        }
+        ctx.logger.info("interrupted node=%s turn=%d elapsed_sec=%.3f", node, turn, elapsed)
+        raise
+    else:
+        timing["elapsed_sec"] = round(monotonic() - started, 3)
+
+
 def record(
-    state: AgentState, ctx: GraphContext, node: str, usage: dict | None = None
+    state: AgentState, ctx: GraphContext, node: str, usage: dict | None = None,
+    *, elapsed_sec: float | None = None,
 ) -> None:
-    """Append one trace row and log the token delta for this node."""
+    """Append one trace row and log this node's token usage and optional timing."""
     prompt = int((usage or {}).get("prompt_tokens") or 0)
     completion = int((usage or {}).get("completion_tokens") or 0)
-    state.node_trace.append(
-        {
-            "node": node,
-            "turn": state.turns,
-            "prompt_tokens": prompt,
-            "completion_tokens": completion,
-        }
-    )
+    row = {
+        "node": node,
+        "turn": state.turns,
+        "prompt_tokens": prompt,
+        "completion_tokens": completion,
+    }
+    timing = ""
+    if elapsed_sec is not None:
+        row["elapsed_sec"] = elapsed_sec
+        timing = f" elapsed_sec={elapsed_sec:.3f}"
+    state.node_trace.append(row)
     ctx.logger.info(
-        "node=%s turn=%d prompt_tokens=%d completion_tokens=%d",
+        "node=%s turn=%d prompt_tokens=%d completion_tokens=%d%s",
         node,
         state.turns,
         prompt,
         completion,
+        timing,
     )
 
 

@@ -1,0 +1,1 @@
+About {remaining_seconds} seconds remain. Use your next command to finish and save the best usable version of the required output. Keep any check quick. If the required work is already complete, respond with TASK_COMPLETE.

@@ -114,6 +114,11 @@ def test_cancellation_preserves_completed_work(
         assert meta["turns"] == turns
         assert meta["finished"] is False
         assert meta["run_label"] == "retained"
+        interrupted = meta["interrupted_step"]
+        assert interrupted["node"] == ("call_model" if stage == "model" else "execute")
+        assert interrupted["turn"] == pause_at
+        assert interrupted["elapsed_sec"] >= 0
+        assert interrupted["exception"] == "CancelledError"
         assert [row["node"] for row in meta["node_trace"]] == expected_nodes
         assert len(meta["messages"]) == message_count
         assert meta["messages"][:2] == initial_messages

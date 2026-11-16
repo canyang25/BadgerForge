@@ -6,7 +6,8 @@ live objects into the checkpoint.
 """
 
 import logging
-from dataclasses import dataclass
+from dataclasses import dataclass, field
+from time import monotonic
 from typing import Any
 
 from harbor.models.agent.context import AgentContext
@@ -30,3 +31,4 @@ class GraphContext:
     early_deliverable: bool = False
     deliverable_turn: int = 5
     loop_recovery: bool = False
+    started_at: float = field(default_factory=monotonic)

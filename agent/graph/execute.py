@@ -4,7 +4,7 @@ from langgraph.runtime import Runtime
 
 from agent.graph.context import GraphContext
 from agent.graph.shape import classify_observation
-from agent.graph.trace import record, sync
+from agent.graph.trace import measure_step, record, sync
 from agent.prompts import observation_message
 from agent.state import AgentState
 from agent.tools import parse_exit_code, run_shell
@@ -13,9 +13,10 @@ from agent.tools import parse_exit_code, run_shell
 async def execute(state: AgentState, runtime: Runtime[GraphContext]) -> dict:
     ctx = runtime.context
     ctx.logger.info("turn %d: %s", state.turns, state.command[:200])
-    observation = await run_shell(
-        ctx.environment, state.command, timeout_sec=ctx.command_timeout_sec
-    )
+    with measure_step(ctx, "execute", state.turns) as timing:
+        observation = await run_shell(
+            ctx.environment, state.command, timeout_sec=ctx.command_timeout_sec
+        )
     return_code = parse_exit_code(observation)
     after = state.guard.after(
         state.command, return_code, observation=observation if ctx.loop_recovery else ""
@@ -41,7 +42,7 @@ async def execute(state: AgentState, runtime: Runtime[GraphContext]) -> dict:
     if after.stop:
         state.stopped_by_guard = "consecutive_failures"
         ctx.logger.info("stopping: %s", after.note)
-    record(state, ctx, "execute")
+    record(state, ctx, "execute", **timing)
     if denied_site:
         state.node_trace[-1].update(recovery_action="suggest_pivot", recovery_site=denied_site)
     sync(state, ctx.harbor)

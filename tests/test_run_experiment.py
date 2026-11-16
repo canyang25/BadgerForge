@@ -41,6 +41,7 @@ def runner(tmp_path):
         "AGENT_PROGRESS_CHECK=1\nAGENT_OBSERVATION_SHAPE=1\nAGENT_MAX_TURNS=999\n"
         "AGENT_EARLY_DELIVERABLE=1\nAGENT_DELIVERABLE_TURN=42\n"
         "AGENT_LOOP_RECOVERY=1\n"
+        "AGENT_DEADLINE_NOTICE_SEC=900\nAGENT_RUN_BUDGET_SEC=9999\n"
     )
     environment = {**os.environ, "PATH": f"{binaries}:{os.environ['PATH']}",
                    "ENV_FILE": str(env_file), "TB_TASKS": str(dataset.resolve()),
@@ -71,7 +72,8 @@ def test_profiles_override_gateway_file_and_record_only_selected_settings(
     for key, expected in (("AGENT_MAX_TURNS", turns), ("AGENT_PROGRESS_CHECK", progress),
                           ("AGENT_OBSERVATION_SHAPE", shaping),
                           ("AGENT_EARLY_DELIVERABLE", deliverable), ("AGENT_DELIVERABLE_TURN", "5"),
-                          ("AGENT_LOOP_RECOVERY", recovery)):
+                          ("AGENT_LOOP_RECOVERY", recovery), ("AGENT_DEADLINE_NOTICE_SEC", "0"),
+                          ("AGENT_RUN_BUDGET_SEC", "0")):
         assert actual["flags"][key] == manifest["settings"][key] == expected
     assert manifest["commit"] == "commit123"
     assert manifest["settings"]["LLM_MODEL"] == "test-model"
@@ -79,6 +81,31 @@ def test_profiles_override_gateway_file_and_record_only_selected_settings(
     assert actual["args"][actual["args"].index("-k") + 1] == "3"
     assert "private-test-sentinel" not in manifest_text + result.stdout + result.stderr
     assert "LLM_API_KEY" not in manifest["settings"]
+
+
+@pytest.mark.parametrize(("profile", "notice_seconds"), [("control", "0"), ("deadline", "150")])
+def test_budget_is_the_same_for_harbor_and_the_graph(runner, tmp_path, profile, notice_seconds):
+    result = runner(profile, extra=("--agent-budget-sec", "360"))
+    assert result.returncode == 0, result.stderr
+    job = tmp_path / "job"
+    manifest = json.loads((job / "experiment.json").read_text())
+    actual = json.loads((tmp_path / "record").read_text())
+    config_path = Path(actual["args"][actual["args"].index("--config") + 1])
+    assert config_path == job / "harbor-agent.json"
+    config = json.loads(config_path.read_text())
+    assert config == manifest["harbor_agent_config"]
+    assert config["agents"] == [{
+        "import_path": "agent.agent:BaselineAgent", "override_timeout_sec": 360
+    }]
+    assert actual["flags"]["AGENT_RUN_BUDGET_SEC"] == manifest["settings"]["AGENT_RUN_BUDGET_SEC"] == "360"
+    assert actual["flags"]["AGENT_DEADLINE_NOTICE_SEC"] == notice_seconds
+
+
+def test_deadline_profile_requires_a_budget(runner, tmp_path):
+    result = runner("deadline", extra=("--dry-run",))
+    assert result.returncode != 0
+    assert "--agent-budget-sec" in result.stderr
+    assert not (tmp_path / "job").exists()
 
 
 def test_dry_run_needs_no_gateway_file_and_writes_nothing(runner, tmp_path):

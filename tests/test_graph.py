@@ -5,6 +5,7 @@ is how we see which node spent the tokens.
 """
 
 import asyncio
+import logging
 from types import SimpleNamespace
 
 import pytest
@@ -12,8 +13,11 @@ from harbor.models.agent.context import AgentContext
 
 import agent.agent as agent_module
 from agent.agent import BaselineAgent
-from agent.graph import build_graph
+from agent.graph import build_graph, run_graph
+from agent.graph import deadline as deadline_module
+from agent.graph.context import GraphContext
 from agent.loop_guard import CONSECUTIVE_FAILURE_ABORT_AT, REPEAT_ABORT_AT
+from agent.state import AgentState
 
 PREAMBLE = "Let's start by exploring the environment."
 COMMAND = "```bash\nls -la\n```"
@@ -24,10 +28,12 @@ class ScriptedLLM:
     def __init__(self, replies):
         self.replies = list(replies)
         self.temperatures = []
+        self.requests = []
         self.last_truncated = False
 
     async def chat(self, messages, temperature=None):
         self.temperatures.append(temperature)
+        self.requests.append(list(messages))
         text, self.last_truncated = self.replies.pop(0)
         return text, {"prompt_tokens": 10, "completion_tokens": 5}
 
@@ -58,6 +64,41 @@ def run(monkeypatch, tmp_path, replies, return_code=0, stdout="ok", stderr=""):
 
 def nodes(context):
     return [row["node"] for row in context.metadata["node_trace"]]
+
+
+@pytest.mark.parametrize("budget, notice_window, fired", [
+    (360, 150, True), (360, 0, False), (0, 150, False), (150, 150, False),
+])
+def test_deadline_notice_only_fires_once_within_the_budget(
+    monkeypatch, budget, notice_window, fired
+):
+    clock = iter((160, 230, 240))
+    monkeypatch.setattr(deadline_module, "monotonic", lambda: next(clock))
+    monkeypatch.setattr(deadline_module, "RUN_BUDGET_SEC", budget)
+    monkeypatch.setattr(deadline_module, "NOTICE_SEC", notice_window)
+    second_command = COMMAND.replace("ls -la", "echo done")
+    llm = ScriptedLLM([(COMMAND, False), (second_command, False), (DONE, False)])
+    environment = FakeEnvironment()
+    context = GraphContext(
+        llm=llm, environment=environment, logger=logging.getLogger(__name__),
+        harbor=AgentContext(), max_turns=10, max_turns_without_action=4,
+        command_timeout_sec=60, no_command_temperature=0.7, started_at=0,
+    )
+    state = AgentState(messages=[{"role": "user", "content": "Do the task"}])
+    asyncio.run(run_graph(state, context))
+
+    trace = context.harbor.metadata["node_trace"]
+    notices = [row for row in trace if row["node"] == "deadline_notice"]
+    assert [row["remaining_sec"] for row in notices] == ([130] if fired else [])
+    expected_count = [0, 1, 1] if fired else [0, 0, 0]
+    assert [
+        sum("About 130 seconds remain." in message["content"] for message in request)
+        for request in llm.requests
+    ] == expected_count
+    assert context.harbor.metadata["finished"] is True
+    assert [row["node"] for row in trace if "elapsed_sec" in row] == [
+        "call_model", "execute", "call_model", "execute", "call_model",
+    ]
 
 
 def test_the_graph_is_the_loop_plus_the_optional_nodes():

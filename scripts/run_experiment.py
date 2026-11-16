@@ -10,6 +10,7 @@ import subprocess
 import sys
 
 ROOT = Path(__file__).resolve().parent.parent
+AGENT_IMPORT = "agent.agent:BaselineAgent"
 DEV_TASKS = [
     "compile-compcert", "extract-elf", "feal-linear-cryptanalysis", "largest-eigenval",
     "modernize-scientific-stack", "portfolio-optimization", "regex-log",
@@ -21,7 +22,8 @@ BASE_FLAGS = {
     "AGENT_PROGRESS_CHECK": "0", "AGENT_PROGRESS_EVERY": "10",
     "AGENT_OBSERVATION_SHAPE": "0",
     "AGENT_EARLY_DELIVERABLE": "0", "AGENT_DELIVERABLE_TURN": "5",
-    "AGENT_LOOP_RECOVERY": "0",
+    "AGENT_LOOP_RECOVERY": "0", "AGENT_DEADLINE_NOTICE_SEC": "0",
+    "AGENT_RUN_BUDGET_SEC": "0",
 }
 PROFILES = {
     "control": {}, "progress": {"AGENT_PROGRESS_CHECK": "1"},
@@ -29,6 +31,7 @@ PROFILES = {
     "shaping": {"AGENT_OBSERVATION_SHAPE": "1"},
     "deliverable": {"AGENT_EARLY_DELIVERABLE": "1"},
     "loop-recovery": {"AGENT_LOOP_RECOVERY": "1"},
+    "deadline": {"AGENT_DEADLINE_NOTICE_SEC": "150"},
 }
 MODEL_DEFAULTS = {
     "LLM_MODEL": "", "LLM_TEMPERATURE": "0.2", "LLM_MAX_TOKENS": "16384",
@@ -68,6 +71,8 @@ def main(argv=None):
     parser.add_argument("tasks", nargs="*", help="defaults to the 10-task dev slice")
     parser.add_argument("--trials", type=positive, default=3)
     parser.add_argument("--concurrency", type=positive, default=2)
+    parser.add_argument("--agent-budget-sec", type=positive,
+                        help="set the same wall-time limit in Harbor and the agent")
     parser.add_argument("--dry-run", action="store_true", help="preview without loading credentials or writing files")
     parser.add_argument("--allow-dirty", action="store_true", help="allow changed agent or task files for a local smoke test")
     args = parser.parse_args(argv)
@@ -78,6 +83,8 @@ def main(argv=None):
 
 
 def launch(args):
+    if args.profile == "deadline" and args.agent_budget_sec is None:
+        raise ValueError("the deadline profile requires --agent-budget-sec")
     candidates = [Path.home() / "Documents/terminal-bench-2-1/tasks", Path.home() / "terminal-bench-2-1/tasks"]
     dataset = Path(os.environ["TB_TASKS"]) if "TB_TASKS" in os.environ else next(
         (path for path in candidates if path.is_dir()), candidates[0]
@@ -102,17 +109,27 @@ def launch(args):
     if dataset_info["selected_tasks_dirty"] and not args.dry_run and not args.allow_dirty:
         raise ValueError("selected task files are dirty; commit them or use --allow-dirty for a smoke test")
     environment = {**os.environ, **BASE_FLAGS, **PROFILES[args.profile]}
+    if args.agent_budget_sec is not None:
+        environment["AGENT_RUN_BUDGET_SEC"] = str(args.agent_budget_sec)
     settings = {**{key: environment.get(key, default) for key, default in MODEL_DEFAULTS.items()},
                 **{key: environment[key] for key in BASE_FLAGS}}
     command = ["harbor", "run", "-p", str(dataset)]
     for task in tasks:
         command.extend(["-i", task])
-    command.extend(["--agent", "agent.agent:BaselineAgent", "-k", str(args.trials),
-                    "-n", str(args.concurrency), "-o", str(job)])
+    command.extend(["-k", str(args.trials), "-n", str(args.concurrency), "-o", str(job)])
+    agent_config_path = job / "harbor-agent.json"
+    if args.agent_budget_sec is None:
+        command.extend(["--agent", AGENT_IMPORT])
+    else:
+        command.extend(["--config", str(agent_config_path)])
     manifest = {"profile": args.profile, "commit": commit, "dirty": dirty,
                 "dataset": dataset_info,
                 "tasks": tasks, "settings": settings, "command": command,
                 "trials": args.trials, "concurrency": args.concurrency, "status": "planned"}
+    if args.agent_budget_sec is not None:
+        manifest["harbor_agent_config"] = {"agents": [
+            {"import_path": AGENT_IMPORT, "override_timeout_sec": args.agent_budget_sec}
+        ]}
     if args.dry_run:
         print(json.dumps(manifest, indent=2))
         return 0
@@ -126,6 +143,8 @@ def launch(args):
     manifest.update(status="running", started_at=datetime.now(timezone.utc).isoformat())
     path = job / "experiment.json"
     path.write_text(json.dumps(manifest, indent=2) + "\n")
+    if args.agent_budget_sec is not None:
+        agent_config_path.write_text(json.dumps(manifest["harbor_agent_config"], indent=2) + "\n")
     print(f"Experiment {args.profile}: {len(tasks)} tasks x {args.trials}; manifest: {path}", flush=True)
     try:
         code = subprocess.run(command, cwd=ROOT, env=environment).returncode
