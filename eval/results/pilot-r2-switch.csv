@@ -1,7 +1,7 @@
-task,trial_id,reward,outcome,turns,input_tokens,output_tokens,seconds,exception,stop_reason
-build-cython-ext,build-cython-ext__ABKRy3f,1.0,pass,56,1233193,23864,289.7,,
-cobol-modernization,cobol-modernization__q8rfvpd,1.0,pass,35,457139,98083,759.8,,
-extract-elf,extract-elf__HnWyrnk,1.0,pass,17,127167,80783,625.2,,
-overfull-hbox,overfull-hbox__KAK8qiJ,1.0,pass,35,355028,89641,714.8,,
-sam-cell-seg,sam-cell-seg__wk4nNc5,1.0,pass,49,724352,67289,1645.7,,
-sqlite-db-truncate,sqlite-db-truncate__Lu9FVc4,1.0,pass,12,88072,67488,456.0,,
+task,trial_id,reward,outcome,turns,input_tokens,output_tokens,seconds,exception,stop_reason,effort_switch_turn
+build-cython-ext,build-cython-ext__ABKRy3f,1.0,pass,56,1233193,23864,289.7,,,
+cobol-modernization,cobol-modernization__q8rfvpd,1.0,pass,35,457139,98083,759.8,,,18
+extract-elf,extract-elf__HnWyrnk,1.0,pass,17,127167,80783,625.2,,,11
+overfull-hbox,overfull-hbox__KAK8qiJ,1.0,pass,35,355028,89641,714.8,,,16
+sam-cell-seg,sam-cell-seg__wk4nNc5,1.0,pass,49,724352,67289,1645.7,,,20
+sqlite-db-truncate,sqlite-db-truncate__Lu9FVc4,1.0,pass,12,88072,67488,456.0,,,10

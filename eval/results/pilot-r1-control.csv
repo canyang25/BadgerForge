@@ -1,7 +1,7 @@
-task,trial_id,reward,outcome,turns,input_tokens,output_tokens,seconds,exception,stop_reason
-build-cython-ext,build-cython-ext__ozCBM29,1.0,pass,54,1053855,32080,340.6,,
-cobol-modernization,cobol-modernization__22CBAAA,0.0,timeout,35,325908,112370,948.4,AgentTimeoutError,
-extract-elf,extract-elf__WhjHMRP,0.0,timeout,19,147452,111443,952.1,AgentTimeoutError,
-overfull-hbox,overfull-hbox__6d9oq7j,0.0,timeout,27,228579,90295,796.4,AgentTimeoutError,
-sam-cell-seg,sam-cell-seg__n5UiUdb,1.0,pass,75,1517109,130012,2204.4,,
-sqlite-db-truncate,sqlite-db-truncate__aepfLGo,1.0,pass,7,14723,32149,220.4,,
+task,trial_id,reward,outcome,turns,input_tokens,output_tokens,seconds,exception,stop_reason,effort_switch_turn
+build-cython-ext,build-cython-ext__ozCBM29,1.0,pass,54,1053855,32080,340.6,,,
+cobol-modernization,cobol-modernization__22CBAAA,0.0,timeout,35,325908,112370,948.4,AgentTimeoutError,,
+extract-elf,extract-elf__WhjHMRP,0.0,timeout,19,147452,111443,952.1,AgentTimeoutError,,
+overfull-hbox,overfull-hbox__6d9oq7j,0.0,timeout,27,228579,90295,796.4,AgentTimeoutError,,
+sam-cell-seg,sam-cell-seg__n5UiUdb,1.0,pass,75,1517109,130012,2204.4,,,
+sqlite-db-truncate,sqlite-db-truncate__aepfLGo,1.0,pass,7,14723,32149,220.4,,,
