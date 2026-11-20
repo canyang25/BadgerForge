@@ -54,6 +54,12 @@ Environment variables
 =====================
 - ``AGENT_MAX_TURNS``  — max reasoning/action cycles per task (default: 150).
 - ``AGENT_COMMAND_TIMEOUT_SEC`` — per-command timeout in seconds (default: 60).
+- ``AGENT_EFFORT_SWITCH`` — reasoning effort to drop to when a task runs long,
+  e.g. ``medium`` (default: empty, off). See ``agent/effort_switch.py``.
+- ``AGENT_EFFORT_SWITCH_AFTER_SEC`` — earliest switch, seconds into the task
+  (default: 360).
+- ``AGENT_EFFORT_SWITCH_MIN_TOKENS`` — switch only if the last 3 replies
+  averaged at least this many completion tokens (default: 3000).
 """
 
 import os
@@ -62,6 +68,7 @@ from harbor.agents.base import BaseAgent
 from harbor.environments.base import BaseEnvironment
 from harbor.models.agent.context import AgentContext
 
+from agent.effort_switch import EffortSwitch
 from agent.llm import LLMClient
 from agent.loop_guard import LoopGuard
 from agent.prompts import (
@@ -96,6 +103,9 @@ act doesn't, until the agent gives up: 4 of 89 tasks in the 2026-10-07 full
 run, 3 of 30 trials on the 10-08 slice. At 0.2 the same context gives nearly
 the same replies (two portfolio-optimization trials produced the identical
 four), so the next sample is warmer as well as nudged."""
+EFFORT_SWITCH = os.environ.get("AGENT_EFFORT_SWITCH", "")
+EFFORT_SWITCH_AFTER_SEC = float(os.environ.get("AGENT_EFFORT_SWITCH_AFTER_SEC", "360"))
+EFFORT_SWITCH_MIN_TOKENS = float(os.environ.get("AGENT_EFFORT_SWITCH_MIN_TOKENS", "3000"))
 
 
 class BaselineAgent(BaseAgent):
@@ -164,6 +174,7 @@ class BaselineAgent(BaseAgent):
         ]
 
         guard = LoopGuard()
+        effort = EffortSwitch(EFFORT_SWITCH, EFFORT_SWITCH_AFTER_SEC, EFFORT_SWITCH_MIN_TOKENS)
         n_input = 0
         n_output = 0
         turns = 0
@@ -184,6 +195,13 @@ class BaselineAgent(BaseAgent):
             next_temperature = None
             n_input += usage.get("prompt_tokens", 0)
             n_output += usage.get("completion_tokens", 0)
+            if effort.record(usage.get("completion_tokens", 0), turns):
+                # Long replies this late: lower the effort for the rest of the task.
+                llm.reasoning_effort = effort.target
+                self.logger.info(
+                    "turn %d: reasoning effort -> %s after %.0f s",
+                    turns, effort.target, effort.switched_elapsed,
+                )
 
             # Update context every turn (not just at the end) so that if
             # Harbor kills us for a timeout, partial stats are still saved.
@@ -195,6 +213,8 @@ class BaselineAgent(BaseAgent):
                 "stopped_by_guard": stopped_by_guard,
                 "no_command_replies": no_command_replies,
                 "commands_after_bump": commands_after_bump,
+                "effort_switch_turn": effort.switched_turn,
+                "effort_switch_elapsed_sec": effort.switched_elapsed,
                 "messages": messages,
             }
 

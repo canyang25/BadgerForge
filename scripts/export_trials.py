@@ -19,6 +19,7 @@ from pathlib import Path
 FIELDS = [
     "task", "trial_id", "reward", "outcome", "turns",
     "input_tokens", "output_tokens", "seconds", "exception", "stop_reason",
+    "effort_switch_turn",
 ]
 
 
@@ -70,6 +71,7 @@ def rows(job_dirs):
                 "seconds": _seconds(data.get("agent_execution") or {}),
                 "exception": exception or "",
                 "stop_reason": stop or "",
+                "effort_switch_turn": meta.get("effort_switch_turn") or "",
             }
 
 
