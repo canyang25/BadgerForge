@@ -1,0 +1,7 @@
+task,trial_id,reward,outcome,turns,input_tokens,output_tokens,seconds,exception,stop_reason
+build-cython-ext,build-cython-ext__sa4p7GH,1.0,pass,53,973605,28113,300.2,,
+cobol-modernization,cobol-modernization__oW56PSk,0.0,timeout,26,202571,107554,901.7,AgentTimeoutError,
+extract-elf,extract-elf__vr2wWKt,1.0,pass,17,86967,75441,563.5,,
+overfull-hbox,overfull-hbox__LPJoFNR,0.0,timeout,20,119760,107519,750.1,AgentTimeoutError,
+sam-cell-seg,sam-cell-seg__Xt4nL88,1.0,pass,90,2463893,106389,2123.1,,
+sqlite-db-truncate,sqlite-db-truncate__dHeuGSR,0.0,gave_up,11,46598,107991,766.2,,no_action
