@@ -7,6 +7,10 @@ task has run a while and recent replies are long.
 """
 
 import asyncio
+import os
+import subprocess
+import sys
+from pathlib import Path
 from types import SimpleNamespace
 
 from harbor.models.agent.context import AgentContext
@@ -15,6 +19,7 @@ import agent.agent as agent_module
 from agent.agent import BaselineAgent
 from agent.effort_switch import EffortSwitch
 
+REPO = Path(__file__).resolve().parent.parent
 COMMAND = "```bash\nls -la\n```"
 DONE = "TASK_COMPLETE"
 
@@ -105,8 +110,27 @@ def test_the_agent_lowers_effort_after_three_long_replies(monkeypatch, tmp_path)
     assert context.metadata["effort_switch_turn"] == 3
 
 
-def test_off_by_default_leaves_effort_alone(monkeypatch, tmp_path):
+def test_switch_off_leaves_effort_alone(monkeypatch, tmp_path):
     replies = [(f"```bash\nls {i}\n```", 4000) for i in range(3)] + [(DONE, 100)]
     llm, context = run(monkeypatch, tmp_path, replies, "")
     assert llm.efforts == [None, None, None, None]
     assert context.metadata["effort_switch_turn"] is None
+
+
+def test_clean_environment_starts_at_server_default_then_medium():
+    """With no effort settings at all, the first request leaves the effort to
+    the server and a switch sends medium: the submission's defaults live in
+    code, not only in .env.op."""
+    env = {k: v for k, v in os.environ.items()
+           if k not in ("LLM_REASONING_EFFORT", "AGENT_EFFORT_SWITCH")}
+    code = (
+        "import agent.agent as a\n"
+        "from agent.llm import LLMClient\n"
+        "c = LLMClient('qwen3.8-27b')\n"
+        "print(c.extra_params(), a.EFFORT_SWITCH)\n"
+        "c.reasoning_effort = a.EFFORT_SWITCH\n"
+        "print(c.extra_params())\n"
+    )
+    out = subprocess.run([sys.executable, "-c", code], env=env, cwd=REPO,
+                         capture_output=True, text=True, check=True).stdout
+    assert out.splitlines() == ["{} medium", "{'reasoning_effort': 'medium'}"]

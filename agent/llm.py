@@ -133,12 +133,14 @@ class LLMClient:
         # which takes ~90s; the quickstart asks for a 300s floor. Retries cover
         # the rest: a dropped VPN or a 429 from a busy gateway killed 16 of 21
         # trials in our first baseline run, each one losing a whole task.
-        # Medium since 2026-10-12: turns are 2-3x faster than at the server's
-        # default (the highest setting), which halved timeouts in a full run
-        # and scored 52/89 against 48/89, at the cost of more wrong answers
-        # (docs/experiments.md). Set LLM_REASONING_EFFORT= (empty) to leave it
-        # to the server, or to another level; measure before changing it.
-        self.reasoning_effort = os.environ.get("LLM_REASONING_EFFORT", "medium") or None
+        # Empty by default: the field is left out and the server picks the
+        # effort (its default is the highest). The agent lowers it to medium
+        # when a task runs long (AGENT_EFFORT_SWITCH in agent.py). Together
+        # these scored 55/89 in the 2026-11-20 full run, against 49 at a fixed
+        # medium and 50 at a fixed server default (docs/experiments.md). Set
+        # LLM_REASONING_EFFORT=medium (or another level) to fix the starting
+        # effort; measure before changing it.
+        self.reasoning_effort = os.environ.get("LLM_REASONING_EFFORT", "") or None
         self.timeout = float(os.environ.get("LLM_TIMEOUT_SEC", "300"))
         # Attempts, not extra tries: 0 would skip the request and raise None.
         self.max_retries = max(1, int(os.environ.get("LLM_MAX_RETRIES", "5")))

@@ -90,10 +90,11 @@ def test_does_not_retry_a_bad_key(monkeypatch):
     assert fake.calls == 1
 
 
-def test_reasoning_effort_defaults_to_medium(monkeypatch):
+def test_reasoning_effort_defaults_to_the_server(monkeypatch):
     monkeypatch.delenv("LLM_REASONING_EFFORT", raising=False)
     client = make_client(monkeypatch)
-    assert client.extra_params() == {"reasoning_effort": "medium"}
+    assert client.reasoning_effort is None
+    assert client.extra_params() == {}
 
 
 def test_empty_reasoning_effort_leaves_it_to_the_server(monkeypatch):
