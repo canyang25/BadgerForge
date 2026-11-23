@@ -58,6 +58,11 @@ Environment variables
   (default: ``medium``; empty turns it off). See ``agent/effort_switch.py``.
 - ``AGENT_EFFORT_SWITCH_AFTER_SEC`` — earliest switch, seconds into the task
   (default: 360).
+- ``AGENT_THINKING_CAP`` — token limit for most replies; a reply cut off at it
+  makes the next one use the full ``LLM_MAX_TOKENS`` (default: 0, off).
+- ``AGENT_OVERRUN_RECOVERY`` — ``on`` hands a cut-off reply's thinking back as
+  notes and turns thinking off after 2 cut-offs in a row (default: off).
+  Both adapted from Badger Agents; see ``agent/llm.py``.
 - ``AGENT_EFFORT_SWITCH_MIN_TOKENS`` — switch only if the last 3 replies
   averaged at least this many completion tokens (default: 3000).
 """
@@ -69,11 +74,12 @@ from harbor.environments.base import BaseEnvironment
 from harbor.models.agent.context import AgentContext
 
 from agent.effort_switch import EffortSwitch
-from agent.llm import LLMClient
+from agent.llm import OVERRUN_CUT_MARKER, LLMClient
 from agent.loop_guard import LoopGuard
 from agent.prompts import (
     ACT_NUDGE_MESSAGE,
     NUDGE_MESSAGE,
+    OVERRUN_NOTES_TEMPLATE,
     SYSTEM_PROMPT,
     observation_message,
 )
@@ -215,6 +221,9 @@ class BaselineAgent(BaseAgent):
                 "commands_after_bump": commands_after_bump,
                 "effort_switch_turn": effort.switched_turn,
                 "effort_switch_elapsed_sec": effort.switched_elapsed,
+                "overruns": llm.n_overruns,
+                "thinking_off_calls": llm.n_thinking_off_calls,
+                "thinking_off_rejected": llm.thinking_off_rejected,
                 "messages": messages,
             }
 
@@ -241,7 +250,13 @@ class BaselineAgent(BaseAgent):
                         "stopping after %d turns with no command", turns_without_action
                     )
                     break
-                if llm.last_truncated:
+                if llm.last_truncated and llm.last_notes:
+                    # Overrun recovery: the notes carry the cut-off thinking
+                    # (start and end), so don't also keep its tail.
+                    messages[-1]["content"] = OVERRUN_CUT_MARKER
+                    notes = OVERRUN_NOTES_TEMPLATE.format(notes=llm.last_notes)
+                    messages.append({"role": "user", "content": f"{NUDGE_MESSAGE}\n\n{notes}"})
+                elif llm.last_truncated:
                     # Out of budget mid-thought; the kept tail says so.
                     messages.append({"role": "user", "content": NUDGE_MESSAGE})
                 else:

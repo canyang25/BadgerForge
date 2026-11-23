@@ -45,7 +45,14 @@ import asyncio
 import os
 
 from dotenv import load_dotenv
-from openai import APIConnectionError, APITimeoutError, AsyncOpenAI, InternalServerError, RateLimitError
+from openai import (
+    APIConnectionError,
+    APITimeoutError,
+    AsyncOpenAI,
+    BadRequestError,
+    InternalServerError,
+    RateLimitError,
+)
 
 # override=True makes .env the single source of truth: without it, a stale
 # copy of these variables exported into your shell (e.g. by the one-off
@@ -65,6 +72,24 @@ RETRYABLE_ERRORS = (
 REASONING_TAIL_CHARS = 2000
 """How much of a cut-off response to keep. Enough to show the model where it
 ran out of budget, small enough that resending it every turn costs little."""
+
+# Thinking cap and overrun recovery (AGENT_THINKING_CAP, AGENT_OVERRUN_RECOVERY).
+# Adapted from Badger Agents (github.com/khayyum04/badger_agent,
+# mini_agent/badger_mini/harbor_agent.py), whose agent scored 56, 56 and 57/89
+# with both on at the server's default effort. Most replies get a smaller
+# token limit; a reply cut off at it ("overrun") makes the next request use the
+# full LLM_MAX_TOKENS. With recovery on, the cut-off reply's thinking is handed
+# back as notes (its start and end), and after OVERRUN_THINKING_OFF_AFTER
+# overruns in a row the next requests go out with thinking off until a reply
+# finishes normally.
+OVERRUN_NOTES_HEAD = 1500
+OVERRUN_NOTES_TAIL = 4500
+OVERRUN_THINKING_OFF_AFTER = 2
+THINKING_OFF_BODY = {"chat_template_kwargs": {"enable_thinking": False}}
+OVERRUN_CUT_MARKER = "[reply cut off at the token limit; its thinking is in the notes below]"
+"""What a reply cut off mid-thought becomes when overrun recovery is on: the
+agent must not act on unfinished reasoning (the reference needs a tool call)."""
+"""Qwen's switch for one reply without thinking, sent as extra request fields."""
 
 RETRY_BASE_DELAY_SEC = 2.0
 RETRY_MAX_DELAY_SEC = 60.0
@@ -110,6 +135,15 @@ def _tail(text: str, limit: int) -> str:
     )
 
 
+def _overrun_notes(message) -> str:
+    """A cut-off reply's thinking (reasoning_content, else content), trimmed to its start and end."""
+    text = (getattr(message, "reasoning_content", None) or getattr(message, "content", None) or "").strip()
+    if len(text) > OVERRUN_NOTES_HEAD + OVERRUN_NOTES_TAIL:
+        omitted = len(text) - OVERRUN_NOTES_HEAD - OVERRUN_NOTES_TAIL
+        text = f"{text[:OVERRUN_NOTES_HEAD]}\n[... {omitted} characters omitted ...]\n{text[-OVERRUN_NOTES_TAIL:]}"
+    return text
+
+
 class LLMClient:
     """Async client for OpenAI-compatible chat completions.
 
@@ -147,6 +181,18 @@ class LLMClient:
         # Whether the last reply hit max_tokens. The agent nudges a cut-off
         # reply differently from one that ended without a command.
         self.last_truncated = False
+        # Thinking cap and overrun recovery: both off by default (see the
+        # constants above). 0 = no cap.
+        self.thinking_cap = int(os.environ.get("AGENT_THINKING_CAP", "0") or 0)
+        self.overrun_recovery = (
+            os.environ.get("AGENT_OVERRUN_RECOVERY", "").strip().lower() == "on"
+        )
+        self.last_notes = ""
+        self._boost_next = False
+        self._overruns_in_row = 0
+        self.thinking_off_rejected = False
+        self.n_overruns = 0
+        self.n_thinking_off_calls = 0
         self._client = AsyncOpenAI(
             base_url=base_url, api_key=api_key, timeout=self.timeout, max_retries=0
         )
@@ -180,11 +226,35 @@ class LLMClient:
               and ``"completion_tokens"`` (both int). Empty dict if the
               server doesn't report usage.
         """
-        response = await self._request_with_retries(messages, temperature)
+        max_tokens = self.max_tokens
+        if self.thinking_cap and not self._boost_next:
+            max_tokens = min(self.thinking_cap, self.max_tokens)
+        thinking_off = (
+            self.overrun_recovery
+            and not self.thinking_off_rejected
+            and self._overruns_in_row >= OVERRUN_THINKING_OFF_AFTER
+        )
+        if thinking_off:
+            try:
+                response = await self._request_with_retries(
+                    messages, temperature, max_tokens, extra_body=THINKING_OFF_BODY
+                )
+                self.n_thinking_off_calls += 1
+            except BadRequestError:
+                # The gateway doesn't take the switch: stop sending it for this task.
+                self.thinking_off_rejected = True
+                response = await self._request_with_retries(messages, temperature, max_tokens)
+        else:
+            response = await self._request_with_retries(messages, temperature, max_tokens)
         message = response.choices[0].message
         text = message.content or ""
         truncated = response.choices[0].finish_reason == "length"
         self.last_truncated = truncated
+        if self.thinking_cap:
+            self._boost_next = truncated
+        self._overruns_in_row = self._overruns_in_row + 1 if truncated else 0
+        self.n_overruns += truncated
+        self.last_notes = _overrun_notes(message) if truncated and self.overrun_recovery else ""
         if not text:
             # Reasoning models stream thinking into `reasoning_content` and
             # only fill `content` once the thinking closes. When generation
@@ -197,7 +267,10 @@ class LLMClient:
             # on every later turn, with the model eventually emitting the same
             # truncated thought nine times in a row.
             thinking = getattr(message, "reasoning_content", None) or ""
-            text = _tail(thinking, REASONING_TAIL_CHARS)
+            if truncated and self.overrun_recovery:
+                text = OVERRUN_CUT_MARKER
+            else:
+                text = _tail(thinking, REASONING_TAIL_CHARS)
         elif truncated:
             text = _tail(text, REASONING_TAIL_CHARS)
         usage = {}
@@ -209,7 +282,11 @@ class LLMClient:
         return text, usage
 
     async def _request_with_retries(
-        self, messages: list[dict], temperature: float | None = None
+        self,
+        messages: list[dict],
+        temperature: float | None = None,
+        max_tokens: int | None = None,
+        extra_body: dict | None = None,
     ):
         """Send one request, retrying transient failures with exponential backoff.
 
@@ -226,8 +303,9 @@ class LLMClient:
                     model=self.model,
                     messages=messages,
                     temperature=self.temperature if temperature is None else temperature,
-                    max_tokens=self.max_tokens,
+                    max_tokens=self.max_tokens if max_tokens is None else max_tokens,
                     **self.extra_params(),
+                    **({"extra_body": extra_body} if extra_body else {}),
                 )
             except RETRYABLE_ERRORS as exc:
                 last_error = exc

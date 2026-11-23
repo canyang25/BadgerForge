@@ -79,6 +79,10 @@ class ScriptedLLM:
         self.replies = list(replies)
         self.efforts = []
         self.last_truncated = False
+        self.last_notes = ""
+        self.n_overruns = 0
+        self.n_thinking_off_calls = 0
+        self.thinking_off_rejected = False
         self.reasoning_effort = None
 
     async def chat(self, messages, temperature=None):

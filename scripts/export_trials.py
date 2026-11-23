@@ -19,7 +19,7 @@ from pathlib import Path
 FIELDS = [
     "task", "trial_id", "reward", "outcome", "turns",
     "input_tokens", "output_tokens", "seconds", "exception", "stop_reason",
-    "effort_switch_turn",
+    "effort_switch_turn", "overruns", "thinking_off_calls",
 ]
 
 
@@ -72,6 +72,8 @@ def rows(job_dirs):
                 "exception": exception or "",
                 "stop_reason": stop or "",
                 "effort_switch_turn": meta.get("effort_switch_turn") or "",
+                "overruns": meta.get("overruns", ""),
+                "thinking_off_calls": meta.get("thinking_off_calls", ""),
             }
 
 

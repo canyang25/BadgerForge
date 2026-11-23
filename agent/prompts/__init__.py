@@ -11,6 +11,9 @@ _HERE = Path(__file__).parent
 SYSTEM_PROMPT = (_HERE / "system.md").read_text().strip()
 NUDGE_MESSAGE = (_HERE / "nudge.md").read_text().strip()
 ACT_NUDGE_MESSAGE = (_HERE / "nudge_act.md").read_text().strip()
+OVERRUN_NOTES_TEMPLATE = (_HERE / "overrun_notes.md").read_text().strip()
+"""Appended to the nudge after a cut-off reply when overrun recovery is on
+(wording adapted from Badger Agents)."""
 
 
 def observation_message(observation: str) -> str:
