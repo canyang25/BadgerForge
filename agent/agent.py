@@ -63,11 +63,17 @@ Environment variables
 - ``AGENT_OVERRUN_RECOVERY`` — ``on`` hands a cut-off reply's thinking back as
   notes and turns thinking off after 2 cut-offs in a row (default: off).
   Both adapted from Badger Agents; see ``agent/llm.py``.
+- ``AGENT_SUBMIT_CHECK`` — ``on`` answers the first TASK_COMPLETE once with a
+  checklist; the next one is accepted (default: off).
+- ``AGENT_TIME_AWARENESS`` — ``on`` shows the minutes used after each command
+  and nudges once at 10 minutes (default: off).
+  Both adapted from Badger Agents.
 - ``AGENT_EFFORT_SWITCH_MIN_TOKENS`` — switch only if the last 3 replies
   averaged at least this many completion tokens (default: 3000).
 """
 
 import os
+import time
 
 from harbor.agents.base import BaseAgent
 from harbor.environments.base import BaseEnvironment
@@ -78,9 +84,13 @@ from agent.llm import OVERRUN_CUT_MARKER, LLMClient
 from agent.loop_guard import LoopGuard
 from agent.prompts import (
     ACT_NUDGE_MESSAGE,
+    CLOCK_TEMPLATE,
     NUDGE_MESSAGE,
     OVERRUN_NOTES_TEMPLATE,
+    SUBMIT_CHECK_MESSAGE,
     SYSTEM_PROMPT,
+    TIME_NUDGE_MESSAGE,
+    TIME_RULE,
     observation_message,
 )
 from agent.tools import parse_action, parse_exit_code, run_shell
@@ -112,6 +122,10 @@ four), so the next sample is warmer as well as nudged."""
 EFFORT_SWITCH = os.environ.get("AGENT_EFFORT_SWITCH", "medium")
 EFFORT_SWITCH_AFTER_SEC = float(os.environ.get("AGENT_EFFORT_SWITCH_AFTER_SEC", "360"))
 EFFORT_SWITCH_MIN_TOKENS = float(os.environ.get("AGENT_EFFORT_SWITCH_MIN_TOKENS", "3000"))
+SUBMIT_CHECK = os.environ.get("AGENT_SUBMIT_CHECK", "").strip().lower() == "on"
+TIME_AWARENESS = os.environ.get("AGENT_TIME_AWARENESS", "").strip().lower() == "on"
+TIME_NUDGE_AFTER_SEC = 600
+_clock = time.monotonic
 
 
 class BaselineAgent(BaseAgent):
@@ -175,7 +189,7 @@ class BaselineAgent(BaseAgent):
         # The system prompt (from prompts.py) tells the LLM how to behave;
         # the first user message is the task instruction from Harbor.
         messages = [
-            {"role": "system", "content": SYSTEM_PROMPT},
+            {"role": "system", "content": f"{SYSTEM_PROMPT}\n\n{TIME_RULE}" if TIME_AWARENESS else SYSTEM_PROMPT},
             {"role": "user", "content": instruction},
         ]
 
@@ -191,6 +205,22 @@ class BaselineAgent(BaseAgent):
         no_command_replies = 0
         commands_after_bump = 0
         next_temperature = None
+        started = _clock()
+        submit_checked_turn = None
+        time_nudged_at = None
+
+        def with_clock(content: str) -> str:
+            """Time awareness: append the minutes used, and the 10-minute nudge once."""
+            nonlocal time_nudged_at
+            if not TIME_AWARENESS:
+                return content
+            elapsed = _clock() - started
+            content = f"{content}\n\n{CLOCK_TEMPLATE.format(minutes=int(elapsed // 60))}"
+            if time_nudged_at is None and elapsed >= TIME_NUDGE_AFTER_SEC:
+                time_nudged_at = round(elapsed, 1)
+                context.metadata["time_nudged_at_sec"] = time_nudged_at
+                content = f"{content}\n{TIME_NUDGE_MESSAGE}"
+            return content
 
         for _ in range(MAX_TURNS):
             turns += 1
@@ -224,6 +254,8 @@ class BaselineAgent(BaseAgent):
                 "overruns": llm.n_overruns,
                 "thinking_off_calls": llm.n_thinking_off_calls,
                 "thinking_off_rejected": llm.thinking_off_rejected,
+                "submit_checked_turn": submit_checked_turn,
+                "time_nudged_at_sec": time_nudged_at,
                 "messages": messages,
             }
 
@@ -231,6 +263,19 @@ class BaselineAgent(BaseAgent):
 
             # 2. Parse the response into an action (see tools.py).
             action = parse_action(text)
+
+            if (
+                action.kind == "done"
+                and SUBMIT_CHECK
+                and submit_checked_turn is None
+                and turns < MAX_TURNS
+            ):
+                # Hold back the first finish once and ask for a final check.
+                submit_checked_turn = turns
+                context.metadata["submit_checked_turn"] = turns
+                turns_without_action = 0
+                messages.append({"role": "user", "content": with_clock(SUBMIT_CHECK_MESSAGE)})
+                continue
 
             if action.kind == "done":
                 finished = True
@@ -291,7 +336,7 @@ class BaselineAgent(BaseAgent):
             content = observation_message(observation)
             if note:
                 content = f"{content}\n\n{note}"
-            messages.append({"role": "user", "content": content})
+            messages.append({"role": "user", "content": with_clock(content)})
 
             if after.stop:
                 stopped_by_guard = "consecutive_failures"

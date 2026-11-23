@@ -1,0 +1,1 @@
+TIME: Time is limited (it may be only 15 minutes). Write a working version of the required output file(s) early, by about 5-8 minutes if you can, then improve it. Overwrite them when you improve them; a missing output file always fails.
