@@ -52,7 +52,7 @@ Run it
 
 Environment variables
 =====================
-- ``AGENT_MAX_TURNS``  — max reasoning/action cycles per task (default: 100).
+- ``AGENT_MAX_TURNS``  — max reasoning/action cycles per task (default: 150).
 - ``AGENT_COMMAND_TIMEOUT_SEC`` — per-command timeout in seconds (default: 60).
 """
 
@@ -72,7 +72,7 @@ from agent.prompts import (
 )
 from agent.tools import parse_action, parse_exit_code, run_shell
 
-MAX_TURNS = int(os.environ.get("AGENT_MAX_TURNS", "100"))
+MAX_TURNS = int(os.environ.get("AGENT_MAX_TURNS", "150"))
 MAX_TURNS_WITHOUT_ACTION = int(os.environ.get("AGENT_MAX_TURNS_WITHOUT_ACTION", "4"))
 """Give up after this many consecutive turns that produce no command.
 
@@ -263,3 +263,7 @@ class BaselineAgent(BaseAgent):
                 context.metadata["stopped_by_guard"] = stopped_by_guard
                 self.logger.info("stopping: %s", after.note)
                 break
+        else:
+            # Every turn used. Say so, so the export needn't guess from the turn count.
+            stop_reason = "max_turns"
+            context.metadata["stop_reason"] = stop_reason

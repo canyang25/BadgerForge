@@ -103,6 +103,15 @@ def test_a_task_complete_line_ends_the_task(monkeypatch, tmp_path):
     assert context.metadata["finished"] is True
 
 
+def test_using_every_turn_is_recorded(monkeypatch, tmp_path):
+    monkeypatch.setattr(agent_module, "MAX_TURNS", 3)
+    commands = [(f"```bash\nls {i}\n```", False) for i in range(3)]
+    llm, context = run(monkeypatch, tmp_path, commands)
+    assert context.metadata["stop_reason"] == "max_turns"
+    assert context.metadata["turns"] == 3
+    assert context.metadata["finished"] is False
+
+
 @pytest.mark.parametrize("temperature", [None, 0.7])
 def test_llm_client_sends_the_override_only_when_given(monkeypatch, temperature):
     monkeypatch.setenv("LLM_MODEL", "qwen3.8-27b")

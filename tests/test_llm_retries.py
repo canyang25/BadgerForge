@@ -69,6 +69,14 @@ def test_gives_up_after_max_retries(monkeypatch):
     assert fake.calls == 3
 
 
+def test_zero_retries_still_makes_one_attempt(monkeypatch):
+    client = make_client(monkeypatch, LLM_MAX_RETRIES="0")
+    fake = install(client, FakeCompletions(failures=99))
+    with pytest.raises(APITimeoutError):
+        asyncio.run(client._request_with_retries([]))
+    assert fake.calls == 1
+
+
 def test_does_not_retry_a_bad_key(monkeypatch):
     client = make_client(monkeypatch)
     auth_error = AuthenticationError(
