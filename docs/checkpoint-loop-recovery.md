@@ -75,6 +75,6 @@ tokens with `control` on the same tasks.
 
 ## Follow-up
 
-A separate completion verifier is a follow-up experiment. Its first test should
-exercise an explicit deliverable requirement and return the observed mismatch
-to the agent for a bounded repair.
+Completion checks, deadline handling, and further loop changes are follow-up
+options. See the [research plan](agent-research-plan.md) for how we will choose
+the next experiment and checkpoint its results.
