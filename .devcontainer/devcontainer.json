@@ -8,10 +8,12 @@
   },
   "runArgs": [
     "--security-opt", "label=disable",
-    "--security-opt", "seccomp=unconfined"
+    "--security-opt", "seccomp=unconfined",
+    "--platform=linux/arm64"
   ],
   "mounts": [
-    "source=${localEnv:HOME}/.config/gcloud,target=/home/vscode/.config/gcloud,type=bind"
+    "source=${localEnv:HOME}/.config/gcloud,target=/home/vscode/.config/gcloud,type=bind",
+    "source=${localWorkspaceFolder}/../terminal-bench-2-1,target=/home/vscode/workspace/terminal-bench,type=bind,readonly"
   ],
   "customizations": {
     "vscode": {

@@ -21,3 +21,4 @@ pytest-asyncio
 
 # Data Analysis (for local observability logs)
 pandas
+harbor

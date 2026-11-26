@@ -1,0 +1,17 @@
+[project]
+name = "mlm26-agent"
+version = "0.1.0"
+description = "Baseline coding agent for Terminal-Bench 2.0 (via Harbor)"
+requires-python = ">=3.12"
+dependencies = [
+    "harbor>=0.13",
+    "openai>=1.40",
+    "python-dotenv>=1.0",
+]
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+packages = ["agent"]

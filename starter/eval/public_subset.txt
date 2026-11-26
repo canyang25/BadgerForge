@@ -1,0 +1,9 @@
+# Public task subset — Terminal-Bench 2.0 task names, one per line.
+# This is the self-evaluation set for the semester. The official list is
+# announced at kickoff; the entries below are placeholders so the tooling
+# works on day one. Lines starting with # are ignored.
+#
+# Browse all TB2 tasks: harbor datasets list / https://www.tbench.ai
+build-cython-ext
+chess-best-move
+configure-git-webserver
