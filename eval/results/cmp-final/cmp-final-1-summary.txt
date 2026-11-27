@@ -1,0 +1,11 @@
+== full run 1
+  block 1 final-1-b1: start 11-26 23:25:26 (clock 0.9992), done 11-27 01:03:03 (clock 0.9949); trials 13, passes 8
+  block 2 final-1-b2: start 11-27 01:07:05 (clock 0.9948), done 11-27 03:54:16 (clock 0.9744); trials 13, passes 7
+  block 3 final-1-b3: start 11-27 03:58:23 (clock 0.9742), done 11-27 06:13:20 (clock 0.9691); trials 13, passes 8; reruns: 11-27 05:40:44  EnvironmentStartTimeoutError (one at a time): make-mips-interpreter__gXv2PvN
+  block 4 final-1-b4: start 11-27 06:17:29 (clock 0.9693), done 11-27 08:17:43 (clock 0.9659); trials 13, passes 7
+  block 5 final-1-b5: start 11-27 08:21:53 (clock 0.9657), done 11-27 10:25:16 (clock 0.9627); trials 13, passes 10
+  block 6 final-1-b6: start 11-27 10:29:26 (clock 0.9626), done 11-27 11:37:59 (clock 0.9614); trials 12, passes 5
+  block 7 final-1-b7: start 11-27 11:42:10 (clock 0.9613), done 11-27 13:06:40 (clock 0.9582); trials 12, passes 7
+  total: 52/89 passes (0.5843 of 89); outcomes {'fail:AgentTimeoutError': 24, 'fail:no exception': 13, 'pass': 52}
+  tokens in 72,902,949 out 7,346,033; mean agent s 868; overruns 373; thinking_off_calls 94; thinking_off_rejected 0
+  restarts logged so far: 14 (last: 2026-11-27 13:11:17 RESTART 15 done: wsl --shutdown at 13:08:51, clock ratio 0.9818, gates OK, intent resume)

@@ -1,0 +1,14 @@
+CLOCK 2026-11-26 23:25:26 CST [start of block 1 final-1-b1] wsl 120.26 s / windows 120.36 s = ratio 0.9992 (+-0.0020); 1800 s limit = 1802 s real, 900 s = 901 s
+CLOCK 2026-11-27 01:05:04 CST [after job 1 final-1-b1] wsl 120.23 s / windows 120.85 s = ratio 0.9949 (+-0.0018); 1800 s limit = 1809 s real, 900 s = 905 s
+CLOCK 2026-11-27 01:07:05 CST [start of block 2 final-1-b2] wsl 120.22 s / windows 120.84 s = ratio 0.9948 (+-0.0017); 1800 s limit = 1809 s real, 900 s = 905 s
+CLOCK 2026-11-27 03:56:20 CST [after job 2 final-1-b2] wsl 120.24 s / windows 123.40 s = ratio 0.9744 (+-0.0018); 1800 s limit = 1847 s real, 900 s = 924 s
+CLOCK 2026-11-27 03:58:23 CST [start of block 3 final-1-b3] wsl 120.22 s / windows 123.41 s = ratio 0.9742 (+-0.0016); 1800 s limit = 1848 s real, 900 s = 924 s
+CLOCK 2026-11-27 06:15:25 CST [after job 3 final-1-b3] wsl 120.22 s / windows 124.05 s = ratio 0.9691 (+-0.0017); 1800 s limit = 1857 s real, 900 s = 929 s
+CLOCK 2026-11-27 06:17:29 CST [start of block 4 final-1-b4] wsl 120.21 s / windows 124.02 s = ratio 0.9693 (+-0.0016); 1800 s limit = 1857 s real, 900 s = 929 s
+CLOCK 2026-11-27 08:19:48 CST [after job 4 final-1-b4] wsl 120.23 s / windows 124.47 s = ratio 0.9659 (+-0.0017); 1800 s limit = 1864 s real, 900 s = 932 s
+CLOCK 2026-11-27 08:21:53 CST [start of block 5 final-1-b5] wsl 120.23 s / windows 124.49 s = ratio 0.9657 (+-0.0016); 1800 s limit = 1864 s real, 900 s = 932 s
+CLOCK 2026-11-27 10:27:21 CST [after job 5 final-1-b5] wsl 120.24 s / windows 124.90 s = ratio 0.9627 (+-0.0017); 1800 s limit = 1870 s real, 900 s = 935 s
+CLOCK 2026-11-27 10:29:26 CST [start of block 6 final-1-b6] wsl 120.22 s / windows 124.89 s = ratio 0.9626 (+-0.0016); 1800 s limit = 1870 s real, 900 s = 935 s
+CLOCK 2026-11-27 11:40:04 CST [after job 6 final-1-b6] wsl 120.22 s / windows 125.05 s = ratio 0.9614 (+-0.0017); 1800 s limit = 1872 s real, 900 s = 936 s
+CLOCK 2026-11-27 11:42:10 CST [start of block 7 final-1-b7] wsl 120.23 s / windows 125.08 s = ratio 0.9613 (+-0.0017); 1800 s limit = 1873 s real, 900 s = 936 s
+CLOCK 2026-11-27 13:08:45 CST [after job 7 final-1-b7] wsl 120.23 s / windows 125.47 s = ratio 0.9582 (+-0.0016); 1800 s limit = 1879 s real, 900 s = 939 s

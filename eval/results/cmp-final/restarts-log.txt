@@ -1,0 +1,185 @@
+2026-11-24 15:07:32 NEED 1PASSWORD: reading key, attempt 1 (click Allow in the app)
+2026-11-24 15:08:33 op read failed: [ERROR] 2026/11/24 15:08:33 could not read secret '<1Password reference> error initializing client: authorization timeout
+2026-11-24 15:08:34 NEED 1PASSWORD: reading key, attempt 2 (click Allow in the app)
+2026-11-24 15:09:11 key read OK (length 25); held in this process only
+2026-11-24 15:09:11 RESTART 1 requested: intent=resume; reason: initial restart of 11-24 after the clock hold (stop ratio 0.9461); then cmp-B-r1-b1 from scratch, then job 10
+2026-11-24 15:09:25 RESTART 1: wsl --shutdown at 15:09:12
+2026-11-24 15:11:29 RESTART 1: clock ratio 0.9461 (jobs/cmp-clock.log)
+2026-11-24 15:11:30 docker 29.8.2
+2026-11-24 15:11:30 keyhold: keyhold started
+2026-11-24 15:11:30 keyhold: keyhold key length 25; tmux global env names among AGENT_/LLM_REASONING_EFFORT/ENV_FILE: []
+2026-11-24 15:11:31 gateway health: http 200
+2026-11-24 15:11:31 ALERT: PAUSE: clock ratio 0.9461 still below 0.95 after restart 1; nothing started; Ruoshi decides
+2026-11-24 15:11:59 CORRECTION: restart 1 ALERT was a parse error (agent read 'ratio 0.9461' from its own reason text); the restart-1 clock line in jobs/cmp-clock.log (15:11:29) is ratio 1.0006 -> continuing by hand: gates, cmp-start.sh, supervisor
+2026-11-25 12:57:36 boundary restart watcher: waiting for 'JOB DONE 19/39' to clear the OOM-frozen container financial-document-processor__r5q6k4n__env-main-1
+2026-11-25 14:50:04 boundary restart: 'JOB DONE 19/39' seen; supervisor stopped, stop flag set (orchestrator exits before the next job), restart requested from the Windows agent
+2026-11-25 14:50:06 RESTART 2 requested: intent=resume; reason: boundary restart after JOB DONE 19/39 to clear the OOM-frozen container financial-document-processor__r5q6k4n (11-25)
+2026-11-25 14:50:21 RESTART 2: wsl --shutdown at 14:50:06
+2026-11-25 14:52:24 RESTART 2: clock ratio 0.9786 (jobs/cmp-clock.log)
+2026-11-25 14:52:26 docker 29.8.2
+2026-11-25 14:52:26 keyhold: keyhold started
+2026-11-25 14:52:26 keyhold: keyhold key length 25; tmux global env names among AGENT_/LLM_REASONING_EFFORT/ENV_FILE: []
+2026-11-25 14:52:26 gateway health: http 200
+2026-11-25 14:52:27 gate B: ruoshi/exp-thinking-cap 25fc394 clean; arm B: None 'medium' 0 False 16384 4 False False  OK
+2026-11-25 14:52:28 gate C: ruoshi/exp-thinking-cap 25fc394 clean; arm C: None '' 8192 True 16384 6 False False  OK
+2026-11-25 14:52:29 gate D: ruoshi/exp-thinking-cap 25fc394 clean; arm D: None '' 8192 True 16384 6 True True  OK
+2026-11-25 14:52:33 cmp-start.sh: clocksource: tsc | cmpjob: 1 windows (created Wed Nov 25 14:52:32 2026) | corch: 1 windows (created Wed Nov 25 14:52:31 2026) | keyhold: 1 windows (created Wed Nov 25 14:52:26 2026)
+2026-11-25 14:52:33 RESTART 2 done: wsl --shutdown at 14:50:06, clock ratio 0.9786, gates OK, intent resume
+2026-11-25 14:53:06 RESTART 2 check: WSL uptime 155 s at 14:55 (restarted); jobs/cmp-clock.log restart-2 line ratio 0.9786 (+-0.0018); frozen container financial-document-processor__r5q6k4n__env-main-1 no longer running (docker ps: not listed; docker ps -a: 'Exited (137)', record kept, not deleted); running containers are only job 20's two; free -m: used 1709 MB, available 10247 MB; orchestrator resumed with job 20 cmp-C-r3-b1 (arm C check OK), supervisor RUNNING
+2026-11-25 14:53:15 CORRECTION to the RESTART 2 check line: the 'at 14:55' was wrong; the 155 s uptime was read in the same command, about 14:52:50 (the check line itself is stamped 14:53:06)
+2026-11-25 20:22:22 RESTART 3 requested: intent=resume; reason: clock 0.9489 after job 22 cmp-C-r3-b2
+2026-11-25 20:22:36 RESTART 3: wsl --shutdown at 20:22:23
+2026-11-25 20:24:40 RESTART 3: clock ratio 0.9777 (jobs/cmp-clock.log)
+2026-11-25 20:24:41 docker 29.8.2
+2026-11-25 20:24:41 keyhold: keyhold started
+2026-11-25 20:24:42 keyhold: keyhold key length 25; tmux global env names among AGENT_/LLM_REASONING_EFFORT/ENV_FILE: []
+2026-11-25 20:24:42 gateway health: http 200
+2026-11-25 20:24:43 gate B: ruoshi/exp-thinking-cap 25fc394 clean; arm B: None 'medium' 0 False 16384 4 False False  OK
+2026-11-25 20:24:44 gate C: ruoshi/exp-thinking-cap 25fc394 clean; arm C: None '' 8192 True 16384 6 False False  OK
+2026-11-25 20:24:45 gate D: ruoshi/exp-thinking-cap 25fc394 clean; arm D: None '' 8192 True 16384 6 True True  OK
+2026-11-25 20:24:49 cmp-start.sh: clocksource: tsc | cmpjob: 1 windows (created Wed Nov 25 20:24:48 2026) | corch: 1 windows (created Wed Nov 25 20:24:47 2026) | keyhold: 1 windows (created Wed Nov 25 20:24:42 2026)
+2026-11-25 20:24:49 RESTART 3 done: wsl --shutdown at 20:22:23, clock ratio 0.9777, gates OK, intent resume
+2026-11-25 21:52:55 RESTART 4 requested: intent=resume; reason: clock 0.9477 after job 23 cmp-D-r3-b2
+2026-11-25 21:53:08 RESTART 4: wsl --shutdown at 21:52:55
+2026-11-25 21:55:14 RESTART 4: clock ratio 0.9717 (jobs/cmp-clock.log)
+2026-11-25 21:55:15 docker 29.8.2
+2026-11-25 21:55:16 keyhold: keyhold started
+2026-11-25 21:55:16 keyhold: keyhold key length 25; tmux global env names among AGENT_/LLM_REASONING_EFFORT/ENV_FILE: []
+2026-11-25 21:55:16 gateway health: http 200
+2026-11-25 21:55:17 gate B: ruoshi/exp-thinking-cap 25fc394 clean; arm B: None 'medium' 0 False 16384 4 False False  OK
+2026-11-25 21:55:18 gate C: ruoshi/exp-thinking-cap 25fc394 clean; arm C: None '' 8192 True 16384 6 False False  OK
+2026-11-25 21:55:19 gate D: ruoshi/exp-thinking-cap 25fc394 clean; arm D: None '' 8192 True 16384 6 True True  OK
+2026-11-25 21:55:23 cmp-start.sh: clocksource: tsc | cmpjob: 1 windows (created Wed Nov 25 21:55:22 2026) | corch: 1 windows (created Wed Nov 25 21:55:21 2026) | keyhold: 1 windows (created Wed Nov 25 21:55:17 2026)
+2026-11-25 21:55:24 RESTART 4 done: wsl --shutdown at 21:52:55, clock ratio 0.9717, gates OK, intent resume
+2026-11-25 23:18:18 RESTART 5 requested: intent=resume; reason: clock 0.9466 after job 24 cmp-B-r3-b2
+2026-11-25 23:18:31 RESTART 5: wsl --shutdown at 23:18:18
+2026-11-25 23:20:37 RESTART 5: clock ratio 0.9705 (jobs/cmp-clock.log)
+2026-11-25 23:20:39 docker 29.8.2
+2026-11-25 23:20:39 keyhold: keyhold started
+2026-11-25 23:20:39 keyhold: keyhold key length 25; tmux global env names among AGENT_/LLM_REASONING_EFFORT/ENV_FILE: []
+2026-11-25 23:20:40 gateway health: http 200
+2026-11-25 23:20:41 gate B: ruoshi/exp-thinking-cap 25fc394 clean; arm B: None 'medium' 0 False 16384 4 False False  OK
+2026-11-25 23:20:42 gate C: ruoshi/exp-thinking-cap 25fc394 clean; arm C: None '' 8192 True 16384 6 False False  OK
+2026-11-25 23:20:43 gate D: ruoshi/exp-thinking-cap 25fc394 clean; arm D: None '' 8192 True 16384 6 True True  OK
+2026-11-25 23:20:47 cmp-start.sh: clocksource: tsc | cmpjob: 1 windows (created Wed Nov 25 23:20:47 2026) | corch: 1 windows (created Wed Nov 25 23:20:45 2026) | keyhold: 1 windows (created Wed Nov 25 23:20:40 2026)
+2026-11-25 23:20:47 RESTART 5 done: wsl --shutdown at 23:18:18, clock ratio 0.9705, gates OK, intent resume
+2026-11-26 00:51:23 RESTART 6 requested: intent=resume; reason: clock 0.9431 after job 25 cmp-D-r3-b3
+2026-11-26 00:51:36 RESTART 6: wsl --shutdown at 00:51:23
+2026-11-26 00:53:42 RESTART 6: clock ratio 0.9642 (jobs/cmp-clock.log)
+2026-11-26 00:53:43 docker 29.8.2
+2026-11-26 00:53:44 keyhold: keyhold started
+2026-11-26 00:53:44 keyhold: keyhold key length 25; tmux global env names among AGENT_/LLM_REASONING_EFFORT/ENV_FILE: []
+2026-11-26 00:53:44 gateway health: http 200
+2026-11-26 00:53:45 gate B: ruoshi/exp-thinking-cap 25fc394 clean; arm B: None 'medium' 0 False 16384 4 False False  OK
+2026-11-26 00:53:46 gate C: ruoshi/exp-thinking-cap 25fc394 clean; arm C: None '' 8192 True 16384 6 False False  OK
+2026-11-26 00:53:47 gate D: ruoshi/exp-thinking-cap 25fc394 clean; arm D: None '' 8192 True 16384 6 True True  OK
+2026-11-26 00:53:51 cmp-start.sh: clocksource: tsc | cmpjob: 1 windows (created Thu Nov 26 00:53:50 2026) | corch: 1 windows (created Thu Nov 26 00:53:49 2026) | keyhold: 1 windows (created Thu Nov 26 00:53:44 2026)
+2026-11-26 00:53:51 RESTART 6 done: wsl --shutdown at 00:51:23, clock ratio 0.9642, gates OK, intent resume
+2026-11-26 02:47:11 RESTART 7 requested: intent=resume; reason: clock 0.9427 after job 26 cmp-B-r3-b3
+2026-11-26 02:47:24 RESTART 7: wsl --shutdown at 02:47:12
+2026-11-26 02:49:30 RESTART 7: clock ratio 0.9705 (jobs/cmp-clock.log)
+2026-11-26 02:49:31 docker 29.8.2
+2026-11-26 02:49:31 keyhold: keyhold started
+2026-11-26 02:49:31 keyhold: keyhold key length 25; tmux global env names among AGENT_/LLM_REASONING_EFFORT/ENV_FILE: []
+2026-11-26 02:49:32 gateway health: http 200
+2026-11-26 02:49:33 gate B: ruoshi/exp-thinking-cap 25fc394 clean; arm B: None 'medium' 0 False 16384 4 False False  OK
+2026-11-26 02:49:34 gate C: ruoshi/exp-thinking-cap 25fc394 clean; arm C: None '' 8192 True 16384 6 False False  OK
+2026-11-26 02:49:35 gate D: ruoshi/exp-thinking-cap 25fc394 clean; arm D: None '' 8192 True 16384 6 True True  OK
+2026-11-26 02:49:39 cmp-start.sh: clocksource: tsc | cmpjob: 1 windows (created Thu Nov 26 02:49:39 2026) | corch: 1 windows (created Thu Nov 26 02:49:38 2026) | keyhold: 1 windows (created Thu Nov 26 02:49:32 2026)
+2026-11-26 02:49:40 RESTART 7 done: wsl --shutdown at 02:47:12, clock ratio 0.9705, gates OK, intent resume
+2026-11-26 04:26:07 RESTART 8 requested: intent=resume; reason: clock 0.9398 after job 27 cmp-C-r3-b3
+2026-11-26 04:26:20 RESTART 8: wsl --shutdown at 04:26:07
+2026-11-26 04:28:25 RESTART 8: clock ratio 0.9721 (jobs/cmp-clock.log)
+2026-11-26 04:28:26 docker 29.8.2
+2026-11-26 04:28:27 keyhold: keyhold started
+2026-11-26 04:28:27 keyhold: keyhold key length 25; tmux global env names among AGENT_/LLM_REASONING_EFFORT/ENV_FILE: []
+2026-11-26 04:28:27 gateway health: http 200
+2026-11-26 04:28:29 gate B: ruoshi/exp-thinking-cap 25fc394 clean; arm B: None 'medium' 0 False 16384 4 False False  OK
+2026-11-26 04:28:30 gate C: ruoshi/exp-thinking-cap 25fc394 clean; arm C: None '' 8192 True 16384 6 False False  OK
+2026-11-26 04:28:30 gate D: ruoshi/exp-thinking-cap 25fc394 clean; arm D: None '' 8192 True 16384 6 True True  OK
+2026-11-26 04:28:34 cmp-start.sh: clocksource: tsc | cmpjob: 1 windows (created Thu Nov 26 04:28:34 2026) | corch: 1 windows (created Thu Nov 26 04:28:33 2026) | keyhold: 1 windows (created Thu Nov 26 04:28:28 2026)
+2026-11-26 04:28:35 RESTART 8 done: wsl --shutdown at 04:26:07, clock ratio 0.9721, gates OK, intent resume
+2026-11-26 05:57:40 RESTART 9 requested: intent=resume; reason: clock 0.9409 after job 28 cmp-B-u-b1
+2026-11-26 05:57:53 RESTART 9: wsl --shutdown at 05:57:40
+2026-11-26 05:59:58 RESTART 9: clock ratio 0.9688 (jobs/cmp-clock.log)
+2026-11-26 05:59:59 docker 29.8.2
+2026-11-26 06:00:00 keyhold: keyhold started
+2026-11-26 06:00:00 keyhold: keyhold key length 25; tmux global env names among AGENT_/LLM_REASONING_EFFORT/ENV_FILE: []
+2026-11-26 06:00:00 gateway health: http 200
+2026-11-26 06:00:01 gate B: ruoshi/exp-thinking-cap 25fc394 clean; arm B: None 'medium' 0 False 16384 4 False False  OK
+2026-11-26 06:00:02 gate C: ruoshi/exp-thinking-cap 25fc394 clean; arm C: None '' 8192 True 16384 6 False False  OK
+2026-11-26 06:00:03 gate D: ruoshi/exp-thinking-cap 25fc394 clean; arm D: None '' 8192 True 16384 6 True True  OK
+2026-11-26 06:00:07 cmp-start.sh: clocksource: tsc | cmpjob: 1 windows (created Thu Nov 26 06:00:07 2026) | corch: 1 windows (created Thu Nov 26 06:00:06 2026) | keyhold: 1 windows (created Thu Nov 26 06:00:01 2026)
+2026-11-26 06:00:07 RESTART 9 done: wsl --shutdown at 05:57:40, clock ratio 0.9688, gates OK, intent resume
+2026-11-26 07:25:32 RESTART 10 requested: intent=resume; reason: clock 0.9477 after job 29 cmp-C-u-b1
+2026-11-26 07:25:46 RESTART 10: wsl --shutdown at 07:25:32
+2026-11-26 07:27:50 RESTART 10: clock ratio 0.9726 (jobs/cmp-clock.log)
+2026-11-26 07:27:51 docker 29.8.2
+2026-11-26 07:27:52 keyhold: keyhold started
+2026-11-26 07:27:52 keyhold: keyhold key length 25; tmux global env names among AGENT_/LLM_REASONING_EFFORT/ENV_FILE: []
+2026-11-26 07:27:53 gateway health: http 200
+2026-11-26 07:27:54 gate B: ruoshi/exp-thinking-cap 25fc394 clean; arm B: None 'medium' 0 False 16384 4 False False  OK
+2026-11-26 07:27:55 gate C: ruoshi/exp-thinking-cap 25fc394 clean; arm C: None '' 8192 True 16384 6 False False  OK
+2026-11-26 07:27:56 gate D: ruoshi/exp-thinking-cap 25fc394 clean; arm D: None '' 8192 True 16384 6 True True  OK
+2026-11-26 07:28:00 cmp-start.sh: clocksource: tsc | cmpjob: 1 windows (created Thu Nov 26 07:27:59 2026) | corch: 1 windows (created Thu Nov 26 07:27:58 2026) | keyhold: 1 windows (created Thu Nov 26 07:27:53 2026)
+2026-11-26 07:28:00 RESTART 10 done: wsl --shutdown at 07:25:32, clock ratio 0.9726, gates OK, intent resume
+2026-11-26 09:20:20 RESTART 11 requested: intent=resume; reason: clock 0.944 after job 30 cmp-D-u-b1
+2026-11-26 09:20:33 RESTART 11: wsl --shutdown at 09:20:20
+2026-11-26 09:22:38 RESTART 11: clock ratio 0.9694 (jobs/cmp-clock.log)
+2026-11-26 09:22:39 docker 29.8.2
+2026-11-26 09:22:39 keyhold: keyhold started
+2026-11-26 09:22:39 keyhold: keyhold key length 25; tmux global env names among AGENT_/LLM_REASONING_EFFORT/ENV_FILE: []
+2026-11-26 09:22:40 gateway health: http 200
+2026-11-26 09:22:41 gate B: ruoshi/exp-thinking-cap 25fc394 clean; arm B: None 'medium' 0 False 16384 4 False False  OK
+2026-11-26 09:22:42 gate C: ruoshi/exp-thinking-cap 25fc394 clean; arm C: None '' 8192 True 16384 6 False False  OK
+2026-11-26 09:22:43 gate D: ruoshi/exp-thinking-cap 25fc394 clean; arm D: None '' 8192 True 16384 6 True True  OK
+2026-11-26 09:22:46 cmp-start.sh: clocksource: tsc | cmpjob: 1 windows (created Thu Nov 26 09:22:47 2026) | corch: 1 windows (created Thu Nov 26 09:22:45 2026) | keyhold: 1 windows (created Thu Nov 26 09:22:40 2026)
+2026-11-26 09:22:47 RESTART 11 done: wsl --shutdown at 09:20:20, clock ratio 0.9694, gates OK, intent resume
+2026-11-26 10:50:44 RESTART 12 requested: intent=resume; reason: clock 0.9428 after job 31 cmp-C-u-b2
+2026-11-26 10:50:57 RESTART 12: wsl --shutdown at 10:50:44
+2026-11-26 10:53:03 RESTART 12: clock ratio 0.9698 (jobs/cmp-clock.log)
+2026-11-26 10:53:04 docker 29.8.2
+2026-11-26 10:53:04 keyhold: keyhold started
+2026-11-26 10:53:04 keyhold: keyhold key length 25; tmux global env names among AGENT_/LLM_REASONING_EFFORT/ENV_FILE: []
+2026-11-26 10:53:05 gateway health: http 200
+2026-11-26 10:53:06 gate B: ruoshi/exp-thinking-cap 25fc394 clean; arm B: None 'medium' 0 False 16384 4 False False  OK
+2026-11-26 10:53:07 gate C: ruoshi/exp-thinking-cap 25fc394 clean; arm C: None '' 8192 True 16384 6 False False  OK
+2026-11-26 10:53:08 gate D: ruoshi/exp-thinking-cap 25fc394 clean; arm D: None '' 8192 True 16384 6 True True  OK
+2026-11-26 10:53:12 cmp-start.sh: clocksource: tsc | cmpjob: 1 windows (created Thu Nov 26 10:53:11 2026) | corch: 1 windows (created Thu Nov 26 10:53:10 2026) | keyhold: 1 windows (created Thu Nov 26 10:53:05 2026)
+2026-11-26 10:53:12 RESTART 12 done: wsl --shutdown at 10:50:44, clock ratio 0.9698, gates OK, intent resume
+2026-11-26 12:21:17 RESTART 13 requested: intent=resume; reason: clock 0.9357 after job 32 cmp-D-u-b2
+2026-11-26 12:21:31 RESTART 13: wsl --shutdown at 12:21:18
+2026-11-26 12:23:38 RESTART 13: clock ratio 0.958 (jobs/cmp-clock.log)
+2026-11-26 12:23:39 docker 29.8.2
+2026-11-26 12:23:39 keyhold: keyhold started
+2026-11-26 12:23:39 keyhold: keyhold key length 25; tmux global env names among AGENT_/LLM_REASONING_EFFORT/ENV_FILE: []
+2026-11-26 12:23:40 gateway health: http 200
+2026-11-26 12:23:41 gate B: ruoshi/exp-thinking-cap 25fc394 clean; arm B: None 'medium' 0 False 16384 4 False False  OK
+2026-11-26 12:23:41 gate C: ruoshi/exp-thinking-cap 25fc394 clean; arm C: None '' 8192 True 16384 6 False False  OK
+2026-11-26 12:23:42 gate D: ruoshi/exp-thinking-cap 25fc394 clean; arm D: None '' 8192 True 16384 6 True True  OK
+2026-11-26 12:23:46 cmp-start.sh: plan: jobs/cmp-plan.txt | cmpjob: 1 windows (created Thu Nov 26 12:23:46 2026) | corch: 1 windows (created Thu Nov 26 12:23:45 2026) | keyhold: 1 windows (created Thu Nov 26 12:23:40 2026)
+2026-11-26 12:23:46 RESTART 13 done: wsl --shutdown at 12:21:18, clock ratio 0.958, gates OK, intent resume
+2026-11-26 23:21:03 RESTART 14 requested: intent=resume; reason: start of full run 1 of arm C (WSL restart before each run)
+2026-11-26 23:21:17 RESTART 14: wsl --shutdown at 23:21:03
+2026-11-26 23:23:18 RESTART 14: clock ratio 1.0023 (jobs/cmp-clock.log)
+2026-11-26 23:23:19 docker 29.8.2
+2026-11-26 23:23:20 keyhold: keyhold started
+2026-11-26 23:23:20 keyhold: keyhold key length 25; tmux global env names among AGENT_/LLM_REASONING_EFFORT/ENV_FILE: []
+2026-11-26 23:23:20 gateway health: http 200
+2026-11-26 23:23:21 gate B: ruoshi/exp-thinking-cap 25fc394 clean; arm B: None 'medium' 0 False 16384 4 False False  OK
+2026-11-26 23:23:23 gate C: ruoshi/exp-thinking-cap 25fc394 clean; arm C: None '' 8192 True 16384 6 False False  OK
+2026-11-26 23:23:24 gate D: ruoshi/exp-thinking-cap 25fc394 clean; arm D: None '' 8192 True 16384 6 True True  OK
+2026-11-26 23:23:27 cmp-start.sh: clocksource: tsc | plan: jobs/final-plan-1.txt | corch: 1 windows (created Thu Nov 26 23:23:25 2026) | keyhold: 1 windows (created Thu Nov 26 23:23:20 2026)
+2026-11-26 23:23:28 RESTART 14 done: wsl --shutdown at 23:21:03, clock ratio 1.0023, gates OK, intent resume
+2026-11-27 13:08:51 RESTART 15 requested: intent=resume; reason: start of full run 2 (WSL restart before each run)
+2026-11-27 13:09:06 RESTART 15: wsl --shutdown at 13:08:51
+2026-11-27 13:11:09 RESTART 15: clock ratio 0.9818 (jobs/cmp-clock.log)
+2026-11-27 13:11:10 docker 29.8.2
+2026-11-27 13:11:10 keyhold: keyhold started
+2026-11-27 13:11:10 keyhold: keyhold key length 25; tmux global env names among AGENT_/LLM_REASONING_EFFORT/ENV_FILE: []
+2026-11-27 13:11:10 gateway health: http 200
+2026-11-27 13:11:12 gate B: ruoshi/exp-thinking-cap 25fc394 clean; arm B: None 'medium' 0 False 16384 4 False False  OK
+2026-11-27 13:11:12 gate C: ruoshi/exp-thinking-cap 25fc394 clean; arm C: None '' 8192 True 16384 6 False False  OK
+2026-11-27 13:11:13 gate D: ruoshi/exp-thinking-cap 25fc394 clean; arm D: None '' 8192 True 16384 6 True True  OK
+2026-11-27 13:11:17 cmp-start.sh: clocksource: tsc | plan: jobs/final-plan-2.txt | corch: 1 windows (created Fri Nov 27 13:11:15 2026) | keyhold: 1 windows (created Fri Nov 27 13:11:11 2026)
+2026-11-27 13:11:17 RESTART 15 done: wsl --shutdown at 13:08:51, clock ratio 0.9818, gates OK, intent resume
