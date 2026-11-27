@@ -415,7 +415,17 @@ def create_agent_graph(environment: Any, command_timeout_sec: int = 120, model_n
             for m in reversed(state["messages"]):
                 if isinstance(m, AIMessage):
                     if hasattr(m, "tool_calls") and m.tool_calls:
-                        is_read_only = all(tc.get("name") in ("ExecuteCommand", "ReadFile") for tc in m.tool_calls)
+                        is_read_only = True
+                        for tc in m.tool_calls:
+                            if tc.get("name") == "ExecuteCommand":
+                                cmd = tc.get("args", {}).get("command", tc.get("args", {}).get("cmd", "")).strip()
+                                # Only consider it analysis if it's a basic read command
+                                if not any(cmd.startswith(x) for x in ["ls", "cat", "grep", "head", "tail", "pwd", "find", "wc"]):
+                                    is_read_only = False
+                                    break
+                            elif tc.get("name") != "ReadFile":
+                                is_read_only = False
+                                break
                         if is_read_only:
                             read_only_turns += 1
                         else:
@@ -494,6 +504,7 @@ def create_agent_graph(environment: Any, command_timeout_sec: int = 120, model_n
         "Use ExecuteCommand (ls, grep) and ReadFile to investigate the environment. "
         "CRITICAL: Do NOT use `sed`, `head`, or `tail` to read files line-by-line. ALWAYS use the `ReadFile` tool to read file contents, as it safely handles truncation and offsets for you.\n"
         "Do NOT write custom Python or Perl scripts to mathematically model or render data. Inspect the text directly and report findings.\n"
+        "If external APIs return consecutive 400/404 errors, do not guess the schema. Fallback to downloading raw data files and parsing locally.\n"
         "Do NOT write application code or run tests. "
         "When you have finished gathering information, use the ReportBack tool to summarize your findings for the supervisor."
     )
@@ -532,6 +543,7 @@ def create_agent_graph(environment: Any, command_timeout_sec: int = 120, model_n
         "- **CRITICAL: Thoroughly plan your changes BEFORE acting, but DO NOT get trapped in endless `ExecuteCommand` loops. Write your plan in your message, then immediately use `WriteFile` or `ReplaceInFile`. You are on a strict time limit.**\n"
         "- Do NOT write temporary Python scripts just to parse or analyze data. Write the final solution directly.\n"
         "- Do NOT write temporary test scripts; testing is handled exclusively by the Tester agent.\n"
+        "- When fixing legacy C/C++ compilation errors, prefer overriding Makefile flags (e.g., `-std=c++11`) over patching system-wide headers.\n"
         "- Carefully analyze the problem, failure trace, and edge cases (especially concurrency invariants, async cleanup, signals, or compiler constraints) in your plan.\n"
         "- Ensure atomic operations, strict lifecycle management, and accurate signal/exception propagation.\n"
         "- Write clean, production-grade, bug-free implementations that account for edge cases.\n"
