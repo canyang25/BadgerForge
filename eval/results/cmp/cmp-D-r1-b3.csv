@@ -1,0 +1,12 @@
+task,trial_id,reward,outcome,turns,input_tokens,output_tokens,seconds,exception,stop_reason,effort_switch_turn,overruns,thinking_off_calls
+break-filter-js-from-html,break-filter-js-from-html__7eYxzcP,0.0,timeout,25,260901,129306,1257.5,AgentTimeoutError,,,8,1
+code-from-image,code-from-image__5byofjq,0.0,timeout,63,1578373,151607,1257.4,AgentTimeoutError,,,7,1
+dna-insert,dna-insert__XstVYic,0.0,wrong_answer,28,459886,108838,879.0,,,,5,0
+extract-moves-from-video,extract-moves-from-video__kpEF9ho,0.0,timeout,76,1203139,120545,1887.6,AgentTimeoutError,,,3,0
+financial-document-processor,financial-document-processor__NkM46qp,1.0,pass,40,613754,89225,716.5,,,,5,1
+kv-store-grpc,kv-store-grpc__DrcaPjm,1.0,pass,16,51382,4654,53.3,,,,0,0
+llm-inference-batching-scheduler,llm-inference-batching-scheduler__iqE3ofg,0.0,gave_up,23,377597,139560,1063.2,,no_action,,9,3
+protein-assembly,protein-assembly__3thSXFX,0.0,wrong_answer,55,1364574,119146,973.9,,,,7,1
+pytorch-model-cli,pytorch-model-cli__3EXN5VZ,1.0,pass,25,139489,13300,165.1,,,,0,0
+sam-cell-seg,sam-cell-seg__Lc3kFb5,1.0,pass,65,976753,62417,1527.1,,,,2,0
+schemelike-metacircular-eval,schemelike-metacircular-eval__YMpuTkX,0.0,wrong_answer,31,568842,99955,940.6,,,,6,2

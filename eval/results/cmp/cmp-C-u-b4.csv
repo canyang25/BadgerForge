@@ -1,0 +1,15 @@
+task,trial_id,reward,outcome,turns,input_tokens,output_tokens,seconds,exception,stop_reason,effort_switch_turn,overruns,thinking_off_calls
+circuit-fibsqrt,circuit-fibsqrt__rFVTSZB,1.0,pass,55,2040370,276724,2686.9,,,,18,7
+feal-linear-cryptanalysis,feal-linear-cryptanalysis__YzHqv3b,1.0,pass,14,148758,51029,463.6,,,,3,1
+fix-git,fix-git__EyP9JyN,1.0,pass,12,65235,4274,40.5,,,,0,0
+git-leak-recovery,git-leak-recovery__ycQ95vG,1.0,pass,8,20095,2816,28.7,,,,0,0
+install-windows-3.11,install-windows-3.11__NfMMVZV,0.0,wrong_answer,107,2451266,77213,1627.9,,,,1,0
+largest-eigenval,largest-eigenval__ShYS3BV,0.0,timeout,40,684890,89289,902.8,AgentTimeoutError,,,2,0
+log-summary-date-ranges,log-summary-date-ranges__rVLeoVx,1.0,pass,11,49132,6110,53.8,,,,0,0
+make-doom-for-mips,make-doom-for-mips__bTB7ShD,0.0,timeout,65,1934909,88283,902.8,AgentTimeoutError,,,3,0
+modernize-scientific-stack,modernize-scientific-stack__YXDc4ef,1.0,pass,8,23276,3369,29.2,,,,0,0
+multi-source-data-merger,multi-source-data-merger__ZitfHyg,1.0,pass,5,12438,6428,50.6,,,,0,0
+nginx-request-logging,nginx-request-logging__3oCT6tw,1.0,pass,14,41360,6057,67.0,,,,0,0
+portfolio-optimization,portfolio-optimization__LA8G9EF,1.0,pass,20,134721,28174,325.7,,,,0,0
+rstan-to-pystan,rstan-to-pystan__WapsYYe,1.0,pass,62,1215871,47770,1115.5,,,,1,0
+winning-avg-corewars,winning-avg-corewars__njLKpPt,0.0,timeout,88,3303176,522317,3612.1,AgentTimeoutError,,,35,12

@@ -1,0 +1,12 @@
+task,trial_id,reward,outcome,turns,input_tokens,output_tokens,seconds,exception,stop_reason,effort_switch_turn,overruns,thinking_off_calls
+break-filter-js-from-html,break-filter-js-from-html__4KrZxEY,1.0,pass,30,189683,70577,828.5,,,14,0,0
+code-from-image,code-from-image__kzvRVpa,0.0,timeout,86,2687734,115213,1259.5,AgentTimeoutError,,65,0,0
+dna-insert,dna-insert__sXQvKkL,0.0,wrong_answer,18,113196,38554,411.2,,,15,1,0
+extract-moves-from-video,extract-moves-from-video__jxCt5KN,0.0,timeout,63,677046,59553,1894.0,AgentTimeoutError,,18,0,0
+financial-document-processor,financial-document-processor__8eCeBXQ,0.0,wrong_answer,22,167062,59937,590.8,,,18,1,0
+kv-store-grpc,kv-store-grpc__9zXdwiT,1.0,pass,12,26589,5468,60.3,,,,0,0
+llm-inference-batching-scheduler,llm-inference-batching-scheduler__9uv5nqn,1.0,pass,22,312838,114676,1113.5,,,7,2,0
+protein-assembly,protein-assembly__265L4yT,0.0,wrong_answer,68,1601816,171240,1541.5,,,21,1,0
+pytorch-model-cli,pytorch-model-cli__mfaW5jf,1.0,pass,21,102383,8617,90.6,,,,0,0
+sam-cell-seg,sam-cell-seg__ZPSMRUo,0.0,wrong_answer,84,1177097,42074,1575.5,,,50,0,0
+schemelike-metacircular-eval,schemelike-metacircular-eval__gDoAvWo,0.0,gave_up,71,2247292,250706,1946.7,,no_action,22,5,0

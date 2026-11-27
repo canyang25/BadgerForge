@@ -1,0 +1,48 @@
+Three-arm comparison blocks (random.Random(0).shuffle of the alphabetical list, then consecutive chunks)
+phase 1 mixed block 1 (11): cobol-modernization mteb-retrieve password-recovery polyglot-c-py extract-elf adaptive-rejection-sampler caffe-cifar-10 train-fasttext git-multibranch build-cython-ext headless-terminal
+phase 1 mixed block 2 (11): torch-tensor-parallelism mteb-leaderboard tune-mjcf mailman build-pmars overfull-hbox video-processing build-pov-ray sqlite-db-truncate cancel-async-tasks mcmc-sampling-stan
+phase 1 mixed block 3 (11): extract-moves-from-video schemelike-metacircular-eval dna-insert pytorch-model-cli financial-document-processor kv-store-grpc llm-inference-batching-scheduler code-from-image break-filter-js-from-html sam-cell-seg protein-assembly
+phase 2 other block 1 (14): vulnerable-secret raman-fitting write-compressor constraints-scheduling regex-chess sqlite-with-gcov path-tracing-reverse crack-7z-hash large-scale-text-editing gpt2-codegolf chess-best-move polyglot-rust-c pypi-server feal-differential-cryptanalysis
+phase 2 other block 2 (14): bn-fit-modify prove-plus-comm filter-js-from-html torch-pipeline-parallelism reshard-c4-data qemu-alpine-ssh openssl-selfsigned-cert model-extraction-relu-logits qemu-startup dna-assembly compile-compcert fix-ocaml-gc fix-code-vulnerability distribution-search
+phase 2 other block 3 (14): hf-model-inference make-mips-interpreter merge-diff-arc-agi-task configure-git-webserver query-optimize regex-log db-wal-recovery path-tracing sparql-university count-dataset-tokens pytorch-model-recovery gcode-to-text custom-memory-heap-crash sanitize-git-repo
+phase 2 other block 4 (14): feal-linear-cryptanalysis portfolio-optimization install-windows-3.11 modernize-scientific-stack git-leak-recovery log-summary-date-ranges multi-source-data-merger nginx-request-logging fix-git circuit-fibsqrt make-doom-for-mips rstan-to-pystan largest-eigenval winning-avg-corewars
+arm order per block, rotating B,C,D / C,D,B / D,B,C and continuing across rounds and into phase 2
+   1 p1r1b1  B jobs/cmp-B-r1-b1
+   2 p1r1b1  C jobs/cmp-C-r1-b1
+   3 p1r1b1  D jobs/cmp-D-r1-b1
+   4 p1r1b2  C jobs/cmp-C-r1-b2
+   5 p1r1b2  D jobs/cmp-D-r1-b2
+   6 p1r1b2  B jobs/cmp-B-r1-b2
+   7 p1r1b3  D jobs/cmp-D-r1-b3
+   8 p1r1b3  B jobs/cmp-B-r1-b3
+   9 p1r1b3  C jobs/cmp-C-r1-b3
+  10 p1r2b1  B jobs/cmp-B-r2-b1
+  11 p1r2b1  C jobs/cmp-C-r2-b1
+  12 p1r2b1  D jobs/cmp-D-r2-b1
+  13 p1r2b2  C jobs/cmp-C-r2-b2
+  14 p1r2b2  D jobs/cmp-D-r2-b2
+  15 p1r2b2  B jobs/cmp-B-r2-b2
+  16 p1r2b3  D jobs/cmp-D-r2-b3
+  17 p1r2b3  B jobs/cmp-B-r2-b3
+  18 p1r2b3  C jobs/cmp-C-r2-b3
+  19 p1r3b1  B jobs/cmp-B-r3-b1
+  20 p1r3b1  C jobs/cmp-C-r3-b1
+  21 p1r3b1  D jobs/cmp-D-r3-b1
+  22 p1r3b2  C jobs/cmp-C-r3-b2
+  23 p1r3b2  D jobs/cmp-D-r3-b2
+  24 p1r3b2  B jobs/cmp-B-r3-b2
+  25 p1r3b3  D jobs/cmp-D-r3-b3
+  26 p1r3b3  B jobs/cmp-B-r3-b3
+  27 p1r3b3  C jobs/cmp-C-r3-b3
+  28 p2b1    B jobs/cmp-B-u-b1
+  29 p2b1    C jobs/cmp-C-u-b1
+  30 p2b1    D jobs/cmp-D-u-b1
+  31 p2b2    C jobs/cmp-C-u-b2
+  32 p2b2    D jobs/cmp-D-u-b2
+  33 p2b2    B jobs/cmp-B-u-b2
+  34 p2b3    D jobs/cmp-D-u-b3
+  35 p2b3    B jobs/cmp-B-u-b3
+  36 p2b3    C jobs/cmp-C-u-b3
+  37 p2b4    B jobs/cmp-B-u-b4
+  38 p2b4    C jobs/cmp-C-u-b4
+  39 p2b4    D jobs/cmp-D-u-b4

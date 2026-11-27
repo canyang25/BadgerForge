@@ -1,0 +1,15 @@
+task,trial_id,reward,outcome,turns,input_tokens,output_tokens,seconds,exception,stop_reason,effort_switch_turn,overruns,thinking_off_calls
+chess-best-move,chess-best-move__vrrr3w6,0.0,wrong_answer,24,247470,72778,562.1,,,,3,1
+constraints-scheduling,constraints-scheduling__wHmtpWU,1.0,pass,9,44968,10990,91.7,,,,0,0
+crack-7z-hash,crack-7z-hash__9TuAkPf,1.0,pass,24,130812,7158,191.9,,,,0,0
+feal-differential-cryptanalysis,feal-differential-cryptanalysis__YatY8ty,0.0,gave_up,23,410728,182949,1364.9,,no_action,,13,4
+gpt2-codegolf,gpt2-codegolf__nWvzo52,0.0,timeout,18,308978,108693,946.1,AgentTimeoutError,,,8,2
+large-scale-text-editing,large-scale-text-editing__XsajYVb,1.0,pass,20,216802,70623,675.8,,,,4,0
+path-tracing-reverse,path-tracing-reverse__h8Fr9Vu,0.0,wrong_answer,44,2131118,142062,1179.3,,,,9,2
+polyglot-rust-c,polyglot-rust-c__dW5uyuF,0.0,gave_up,6,27155,49188,450.1,,no_action,,4,2
+pypi-server,pypi-server__5eWW8ba,1.0,pass,14,36333,6618,69.9,,,,0,0
+raman-fitting,raman-fitting__2EUFn37,0.0,wrong_answer,24,316904,56168,417.3,,,,2,0
+regex-chess,regex-chess__y2ZmQb7,0.0,wrong_answer,130,11551736,447788,3597.1,,,,17,6
+sqlite-with-gcov,sqlite-with-gcov__RoNHNJf,1.0,pass,15,40791,2029,57.9,,,,0,0
+vulnerable-secret,vulnerable-secret__Xh77ECf,1.0,pass,13,77125,6388,51.4,,,,0,0
+write-compressor,write-compressor__antU9hr,0.0,timeout,15,126650,122617,950.1,AgentTimeoutError,,,8,2

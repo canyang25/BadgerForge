@@ -1,0 +1,15 @@
+trial,submit_checked_turn,time_nudged_at_sec
+configure-git-webserver__XVdEjyB,16,
+count-dataset-tokens__FpQgu74,14,
+custom-memory-heap-crash__BvE4bM4,28,636.4
+db-wal-recovery__qNm9mdx,12,
+gcode-to-text__jL6FBiE,,610.2
+hf-model-inference__cbFmbSU,18,
+make-mips-interpreter__HRZqznb,,605.9
+merge-diff-arc-agi-task__Anqu2LE,21,
+path-tracing__orwxckL,,766.3
+pytorch-model-recovery__zTsYcq2,8,
+query-optimize__RVZ6wyB,12,
+regex-log__LREfLvT,,
+sanitize-git-repo__AGVNYUk,32,
+sparql-university__snp6g7j,14,602.8

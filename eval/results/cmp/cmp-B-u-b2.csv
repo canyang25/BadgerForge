@@ -1,0 +1,15 @@
+task,trial_id,reward,outcome,turns,input_tokens,output_tokens,seconds,exception,stop_reason,effort_switch_turn,overruns,thinking_off_calls
+bn-fit-modify,bn-fit-modify__UcNf8fY,1.0,pass,38,342145,30658,466.1,,,,0,0
+compile-compcert,compile-compcert__PiqEM8E,1.0,pass,108,1749511,41578,1301.2,,,27,1,0
+distribution-search,distribution-search__fRN9P6b,1.0,pass,6,17527,41750,333.4,,,,1,0
+dna-assembly,dna-assembly__6rfTrof,0.0,gave_up,35,498112,180553,1439.0,,no_action,20,3,0
+filter-js-from-html,filter-js-from-html__LG8BH3Z,0.0,wrong_answer,32,292708,36871,335.2,,,,0,0
+fix-code-vulnerability,fix-code-vulnerability__XmN5wuD,1.0,pass,15,72100,1982,25.6,,,,0,0
+fix-ocaml-gc,fix-ocaml-gc__NYrdNoA,1.0,pass,37,584401,67052,876.0,,,16,2,0
+model-extraction-relu-logits,model-extraction-relu-logits__B4p5MQY,0.0,timeout,16,247289,101748,900.1,AgentTimeoutError,,5,2,0
+openssl-selfsigned-cert,openssl-selfsigned-cert__XGABZWP,1.0,pass,9,20457,4443,39.4,,,,0,0
+prove-plus-comm,prove-plus-comm__M3YWjQi,1.0,pass,9,12823,3026,26.8,,,,0,0
+qemu-alpine-ssh,qemu-alpine-ssh__J7G6KJe,0.0,timeout,23,257633,87364,900.2,AgentTimeoutError,,15,1,0
+qemu-startup,qemu-startup__R7XKJ9E,0.0,timeout,19,124560,65655,900.2,AgentTimeoutError,,12,1,0
+reshard-c4-data,reshard-c4-data__NTVtLQD,1.0,pass,21,154575,63155,556.4,,,6,2,0
+torch-pipeline-parallelism,torch-pipeline-parallelism__sr2KK3U,0.0,wrong_answer,14,38510,54354,454.8,,,10,2,0

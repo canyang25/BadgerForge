@@ -1,0 +1,50 @@
+CLOCK 2026-11-22 19:17:13 CST [before the comparison, right after wsl --shutdown] wsl 120.31 s / windows 120.07 s = ratio 1.0020 (+-0.0024); 1800 s limit = 1796 s real, 900 s = 898 s
+CLOCK 2026-11-22 20:21:53 CST [pause: Ruoshi needs the laptop (replaces the 23:00 stop)] wsl 120.28 s / windows 120.58 s = ratio 0.9974 (+-0.0020); 1800 s limit = 1805 s real, 900 s = 902 s
+CLOCK 2026-11-23 10:20:08 CST [before resume (segment 2), right after wsl --shutdown] wsl 120.30 s / windows 121.81 s = ratio 0.9875 (+-0.0024); 1800 s limit = 1823 s real, 900 s = 911 s
+CLOCK 2026-11-23 15:59:08 CST [pause: network degraded (~40 KB/s downloads, verifier timeouts)] wsl 120.27 s / windows 123.62 s = ratio 0.9729 (+-0.0020); 1800 s limit = 1850 s real, 900 s = 925 s
+CLOCK 2026-11-23 16:55:33 CST [auto-resume, PyPI 8.54 MB/s, 7.43 MB/s, 9.61 MB/s] wsl 120.24 s / windows 123.84 s = ratio 0.9710 (+-0.0018); 1800 s limit = 1854 s real, 900 s = 927 s
+CLOCK 2026-11-24 03:27:30 CST [after block p1r1b3] wsl 120.25 s / windows 127.06 s = ratio 0.9464 (+-0.0018); 1800 s limit = 1902 s real, 900 s = 951 s
+CLOCK 2026-11-24 03:30:08 CST [pause: clock ratio below 0.95 after a job] wsl 120.22 s / windows 127.07 s = ratio 0.9461 (+-0.0017); 1800 s limit = 1903 s real, 900 s = 951 s
+CLOCK 2026-11-24 15:11:29 CST [restart 1 after wsl --shutdown (initial restart of 11-24 after the clock hold (stop ratio 0.9461); then cmp-B-r1-b1 from scratch, then job 10)] wsl 120.28 s / windows 120.21 s = ratio 1.0006 (+-0.0023); 1800 s limit = 1799 s real, 900 s = 899 s
+CLOCK 2026-11-24 17:08:14 CST [after job 1 cmp-B-r1-b1] wsl 120.26 s / windows 120.45 s = ratio 0.9984 (+-0.0021); 1800 s limit = 1803 s real, 900 s = 901 s
+CLOCK 2026-11-24 19:21:57 CST [after job 10 cmp-B-r2-b1] wsl 120.25 s / windows 120.56 s = ratio 0.9975 (+-0.0019); 1800 s limit = 1805 s real, 900 s = 902 s
+CLOCK 2026-11-24 21:14:14 CST [after job 11 cmp-C-r2-b1] wsl 120.23 s / windows 120.66 s = ratio 0.9964 (+-0.0018); 1800 s limit = 1806 s real, 900 s = 903 s
+CLOCK 2026-11-24 23:29:05 CST [after job 12 cmp-D-r2-b1] wsl 120.26 s / windows 120.80 s = ratio 0.9956 (+-0.0019); 1800 s limit = 1808 s real, 900 s = 904 s
+CLOCK 2026-11-25 01:07:49 CST [after job 13 cmp-C-r2-b2] wsl 120.23 s / windows 120.85 s = ratio 0.9949 (+-0.0018); 1800 s limit = 1809 s real, 900 s = 905 s
+CLOCK 2026-11-25 02:32:26 CST [after job 14 cmp-D-r2-b2] wsl 120.24 s / windows 121.62 s = ratio 0.9887 (+-0.0019); 1800 s limit = 1821 s real, 900 s = 910 s
+CLOCK 2026-11-25 03:37:33 CST [after job 15 cmp-B-r2-b2] wsl 120.24 s / windows 123.27 s = ratio 0.9754 (+-0.0017); 1800 s limit = 1845 s real, 900 s = 923 s
+CLOCK 2026-11-25 05:54:46 CST [after job 16 cmp-D-r2-b3] wsl 120.23 s / windows 123.86 s = ratio 0.9707 (+-0.0018); 1800 s limit = 1854 s real, 900 s = 927 s
+CLOCK 2026-11-25 07:33:52 CST [after job 17 cmp-B-r2-b3] wsl 120.23 s / windows 124.24 s = ratio 0.9677 (+-0.0018); 1800 s limit = 1860 s real, 900 s = 930 s
+CLOCK 2026-11-25 12:42:30 CST [after job 18 cmp-C-r2-b3] wsl 120.23 s / windows 125.25 s = ratio 0.9599 (+-0.0018); 1800 s limit = 1875 s real, 900 s = 938 s
+CLOCK 2026-11-25 14:52:25 CST [restart 2 after wsl --shutdown (boundary restart after JOB DONE 19/39 to clear the OOM-frozen container financial-document-processor__r5q6k4n (11-25))] wsl 120.22 s / windows 122.86 s = ratio 0.9786 (+-0.0018); 1800 s limit = 1839 s real, 900 s = 920 s
+CLOCK 2026-11-25 17:13:43 CST [after job 20 cmp-C-r3-b1] wsl 120.22 s / windows 126.13 s = ratio 0.9531 (+-0.0016); 1800 s limit = 1888 s real, 900 s = 944 s
+CLOCK 2026-11-25 18:39:47 CST [after job 21 cmp-D-r3-b1] wsl 120.22 s / windows 126.33 s = ratio 0.9516 (+-0.0017); 1800 s limit = 1891 s real, 900 s = 946 s
+CLOCK 2026-11-25 20:22:13 CST [after job 22 cmp-C-r3-b2] wsl 120.22 s / windows 126.70 s = ratio 0.9489 (+-0.0016); 1800 s limit = 1897 s real, 900 s = 948 s
+CLOCK 2026-11-25 20:24:41 CST [restart 3 after wsl --shutdown (clock 0.9489 after job 22 cmp-C-r3-b2)] wsl 120.27 s / windows 123.00 s = ratio 0.9777 (+-0.0021); 1800 s limit = 1841 s real, 900 s = 921 s
+CLOCK 2026-11-25 21:52:52 CST [after job 23 cmp-D-r3-b2] wsl 120.22 s / windows 126.85 s = ratio 0.9477 (+-0.0016); 1800 s limit = 1899 s real, 900 s = 950 s
+CLOCK 2026-11-25 21:55:15 CST [restart 4 after wsl --shutdown (clock 0.9477 after job 23 cmp-D-r3-b2)] wsl 120.23 s / windows 123.72 s = ratio 0.9717 (+-0.0018); 1800 s limit = 1852 s real, 900 s = 926 s
+CLOCK 2026-11-25 23:18:15 CST [after job 24 cmp-B-r3-b2] wsl 120.23 s / windows 127.01 s = ratio 0.9466 (+-0.0017); 1800 s limit = 1902 s real, 900 s = 951 s
+CLOCK 2026-11-25 23:20:38 CST [restart 5 after wsl --shutdown (clock 0.9466 after job 24 cmp-B-r3-b2)] wsl 120.27 s / windows 123.92 s = ratio 0.9705 (+-0.0021); 1800 s limit = 1855 s real, 900 s = 927 s
+CLOCK 2026-11-26 00:51:20 CST [after job 25 cmp-D-r3-b3] wsl 120.22 s / windows 127.48 s = ratio 0.9431 (+-0.0016); 1800 s limit = 1909 s real, 900 s = 954 s
+CLOCK 2026-11-26 00:53:43 CST [restart 6 after wsl --shutdown (clock 0.9431 after job 25 cmp-D-r3-b3)] wsl 120.28 s / windows 124.74 s = ratio 0.9642 (+-0.0022); 1800 s limit = 1867 s real, 900 s = 933 s
+CLOCK 2026-11-26 02:47:03 CST [after job 26 cmp-B-r3-b3] wsl 120.21 s / windows 127.52 s = ratio 0.9427 (+-0.0016); 1800 s limit = 1909 s real, 900 s = 955 s
+CLOCK 2026-11-26 02:49:31 CST [restart 7 after wsl --shutdown (clock 0.9427 after job 26 cmp-B-r3-b3)] wsl 120.22 s / windows 123.88 s = ratio 0.9705 (+-0.0017); 1800 s limit = 1855 s real, 900 s = 927 s
+CLOCK 2026-11-26 04:25:56 CST [after job 27 cmp-C-r3-b3] wsl 120.22 s / windows 127.93 s = ratio 0.9398 (+-0.0016); 1800 s limit = 1915 s real, 900 s = 958 s
+CLOCK 2026-11-26 04:28:26 CST [restart 8 after wsl --shutdown (clock 0.9398 after job 27 cmp-C-r3-b3)] wsl 120.26 s / windows 123.72 s = ratio 0.9721 (+-0.0020); 1800 s limit = 1852 s real, 900 s = 926 s
+CLOCK 2026-11-26 05:57:36 CST [after job 28 cmp-B-u-b1] wsl 120.22 s / windows 127.77 s = ratio 0.9409 (+-0.0016); 1800 s limit = 1913 s real, 900 s = 957 s
+CLOCK 2026-11-26 05:59:59 CST [restart 9 after wsl --shutdown (clock 0.9409 after job 28 cmp-B-u-b1)] wsl 120.23 s / windows 124.10 s = ratio 0.9688 (+-0.0018); 1800 s limit = 1858 s real, 900 s = 929 s
+CLOCK 2026-11-26 07:25:31 CST [after job 29 cmp-C-u-b1] wsl 120.23 s / windows 126.86 s = ratio 0.9477 (+-0.0017); 1800 s limit = 1899 s real, 900 s = 950 s
+CLOCK 2026-11-26 07:27:51 CST [restart 10 after wsl --shutdown (clock 0.9477 after job 29 cmp-C-u-b1)] wsl 120.20 s / windows 123.59 s = ratio 0.9726 (+-0.0017); 1800 s limit = 1851 s real, 900 s = 925 s
+CLOCK 2026-11-26 09:20:14 CST [after job 30 cmp-D-u-b1] wsl 120.22 s / windows 127.36 s = ratio 0.9440 (+-0.0016); 1800 s limit = 1907 s real, 900 s = 953 s
+CLOCK 2026-11-26 09:22:39 CST [restart 11 after wsl --shutdown (clock 0.944 after job 30 cmp-D-u-b1)] wsl 120.22 s / windows 124.02 s = ratio 0.9694 (+-0.0017); 1800 s limit = 1857 s real, 900 s = 928 s
+CLOCK 2026-11-26 10:50:40 CST [after job 31 cmp-C-u-b2] wsl 120.23 s / windows 127.52 s = ratio 0.9428 (+-0.0017); 1800 s limit = 1909 s real, 900 s = 955 s
+CLOCK 2026-11-26 10:53:04 CST [restart 12 after wsl --shutdown (clock 0.9428 after job 31 cmp-C-u-b2)] wsl 120.24 s / windows 123.99 s = ratio 0.9698 (+-0.0020); 1800 s limit = 1856 s real, 900 s = 928 s
+CLOCK 2026-11-26 12:21:13 CST [after job 32 cmp-D-u-b2] wsl 120.24 s / windows 128.50 s = ratio 0.9357 (+-0.0018); 1800 s limit = 1924 s real, 900 s = 962 s
+CLOCK 2026-11-26 12:23:39 CST [restart 13 after wsl --shutdown (clock 0.9357 after job 32 cmp-D-u-b2)] wsl 120.23 s / windows 125.50 s = ratio 0.9580 (+-0.0018); 1800 s limit = 1879 s real, 900 s = 939 s
+CLOCK 2026-11-26 13:53:47 CST [after job 33 cmp-B-u-b2] wsl 120.24 s / windows 120.28 s = ratio 0.9996 (+-0.0019); 1800 s limit = 1801 s real, 900 s = 900 s
+CLOCK 2026-11-26 15:15:53 CST [after job 34 cmp-D-u-b3] wsl 120.22 s / windows 120.32 s = ratio 0.9991 (+-0.0017); 1800 s limit = 1802 s real, 900 s = 901 s
+CLOCK 2026-11-26 16:33:59 CST [after job 35 cmp-B-u-b3] wsl 120.22 s / windows 120.38 s = ratio 0.9986 (+-0.0017); 1800 s limit = 1803 s real, 900 s = 901 s
+CLOCK 2026-11-26 17:56:08 CST [after job 36 cmp-C-u-b3] wsl 120.24 s / windows 120.48 s = ratio 0.9980 (+-0.0018); 1800 s limit = 1804 s real, 900 s = 902 s
+CLOCK 2026-11-26 19:13:03 CST [after job 37 cmp-B-u-b4] wsl 120.24 s / windows 120.52 s = ratio 0.9976 (+-0.0018); 1800 s limit = 1804 s real, 900 s = 902 s
+CLOCK 2026-11-26 21:19:04 CST [after job 38 cmp-C-u-b4] wsl 120.24 s / windows 120.66 s = ratio 0.9965 (+-0.0018); 1800 s limit = 1806 s real, 900 s = 903 s
+CLOCK 2026-11-26 23:19:00 CST [after job 39 cmp-D-u-b4] wsl 120.22 s / windows 120.76 s = ratio 0.9955 (+-0.0017); 1800 s limit = 1808 s real, 900 s = 904 s

@@ -1,0 +1,12 @@
+task,trial_id,reward,outcome,turns,input_tokens,output_tokens,seconds,exception,stop_reason,effort_switch_turn,overruns,thinking_off_calls
+adaptive-rejection-sampler,adaptive-rejection-sampler__fM4WSWv,0.0,gave_up,15,164961,88310,904.5,,no_action,,7,3
+build-cython-ext,build-cython-ext__PpnQsXx,1.0,pass,48,800256,59861,654.2,,,,3,2
+caffe-cifar-10,caffe-cifar-10__6L5V6Ju,1.0,pass,81,1744134,116964,1971.8,,,,4,1
+cobol-modernization,cobol-modernization__riDrvCi,0.0,timeout,24,189200,99579,945.0,AgentTimeoutError,,,2,0
+extract-elf,extract-elf__eyN3BMU,1.0,pass,13,62961,26569,308.2,,,,1,0
+git-multibranch,git-multibranch__8Xje9SR,1.0,pass,33,192297,12371,141.3,,,,0,0
+headless-terminal,headless-terminal__wjKV8S9,1.0,pass,13,78664,20836,228.9,,,,1,0
+mteb-retrieve,mteb-retrieve__zRC6zFT,0.0,wrong_answer,22,63051,4351,114.3,,,,0,0
+password-recovery,password-recovery__dCQ2urU,1.0,pass,17,103638,5528,53.4,,,,0,0
+polyglot-c-py,polyglot-c-py__kAKdUtF,0.0,gave_up,6,26647,49188,400.1,,no_action,,4,2
+train-fasttext,train-fasttext__WwDbDPP,1.0,pass,64,509260,37206,1405.8,,,,0,0

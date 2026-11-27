@@ -1,0 +1,12 @@
+trial,submit_checked_turn,time_nudged_at_sec
+adaptive-rejection-sampler__fM4WSWv,,
+build-cython-ext__PpnQsXx,43,607.9
+caffe-cifar-10__6L5V6Ju,78,617.6
+cobol-modernization__riDrvCi,,655.1
+extract-elf__eyN3BMU,11,
+git-multibranch__8Xje9SR,30,
+headless-terminal__wjKV8S9,11,
+mteb-retrieve__zRC6zFT,19,
+password-recovery__dCQ2urU,15,
+polyglot-c-py__kAKdUtF,,
+train-fasttext__WwDbDPP,61,610.0

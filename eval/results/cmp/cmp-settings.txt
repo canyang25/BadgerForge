@@ -1,0 +1,14 @@
+three-arm comparison settings, recorded 2026-11-22 19:17:24 CST
+commit: 25fc394b859ec3dab968858c3b7ad89d3196e848 feat(agent): optional submit check and time awareness (from Badger Agents) (branch ruoshi/exp-thinking-cap); tests: 118 passed in 3.19s
+harbor --version: 0.24.0; venv freeze jobs/cmp-env.txt (114 lines)
+dataset: ~/terminal-bench-2-1 7131e43, changed files 0
+jobs: subset, 1 trial per task, concurrency 2, one job at a time; plan jobs/cmp-plan.txt, blocks jobs/cmp-blocks.txt
+arm env files (ENV_FILE for scripts/env.sh): ~/cmp-env/{B,C,D}.env = .env.op.local (no LLM_REASONING_EFFORT/AGENT_ lines) plus:
+  B: 
+  C: AGENT_EFFORT_SWITCH= AGENT_THINKING_CAP=8192 AGENT_OVERRUN_RECOVERY=on AGENT_MAX_TURNS_WITHOUT_ACTION=6 
+  D: AGENT_EFFORT_SWITCH= AGENT_THINKING_CAP=8192 AGENT_OVERRUN_RECOVERY=on AGENT_MAX_TURNS_WITHOUT_ACTION=6 AGENT_SUBMIT_CHECK=on AGENT_TIME_AWARENESS=on 
+arm checks:
+  arm B: None 'medium' 0 False 16384 4 False False  OK
+  arm C: None '' 8192 True 16384 6 False False  OK
+  arm D: None '' 8192 True 16384 6 True True  OK
+clocksource: tsc

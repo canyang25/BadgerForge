@@ -1,0 +1,15 @@
+trial,submit_checked_turn,time_nudged_at_sec
+bn-fit-modify__qhpJN38,13,
+compile-compcert__xpNhWFq,87,638.0
+distribution-search__bGC9UMX,5,
+dna-assembly__GvfiAt6,,605.1
+filter-js-from-html__Mmk3i8H,16,
+fix-code-vulnerability__aH5srYM,22,
+fix-ocaml-gc__vavdADG,48,611.0
+model-extraction-relu-logits__88HCuLW,25,
+openssl-selfsigned-cert__Mo4QsaV,9,
+prove-plus-comm__SM6kyr7,14,
+qemu-alpine-ssh__r5Wy35R,,609.4
+qemu-startup__RDccvuw,,624.3
+reshard-c4-data__g79y3Nc,33,
+torch-pipeline-parallelism__cpqPTq5,19,629.8

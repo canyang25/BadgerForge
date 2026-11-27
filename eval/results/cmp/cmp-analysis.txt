@@ -1,0 +1,27 @@
+trials read: 465 (counted 465); expected 465
+
+== estimates (sum of mixed pass rates over 3 trials + passes on the 56 others)
+  arm B: 53.333  (mixed 20.333 of 33, others 33 of 56)
+  arm C: 56.333  (mixed 19.333 of 33, others 37 of 56)
+  arm D: 47.667  (mixed 17.667 of 33, others 30 of 56)
+  winner (ties -> B, C, D): arm C
+
+== paired differences over tasks (SE = sqrt(n) * sd of per-task differences)
+  B-C all 89   : -3.000 (SE 3.320; tasks differing 28)
+  B-C mixed 33 : +1.000 (SE 2.264; tasks differing 22)
+  B-C others 56: -4.000 (SE 2.412; tasks differing 6)
+  B-D all 89   : +5.667 (SE 2.634; tasks differing 23)
+  B-D mixed 33 : +2.667 (SE 2.033; tasks differing 20)
+  B-D others 56: +3.000 (SE 1.700; tasks differing 3)
+  C-D all 89   : +8.667 (SE 3.116; tasks differing 29)
+  C-D mixed 33 : +1.667 (SE 1.862; tasks differing 22)
+  C-D others 56: +7.000 (SE 2.497; tasks differing 7)
+
+== fixed medium reference (jobs/ref-final-run.csv): 49/89 overall, 15/33 on the mixed tasks, 34/56 on the others
+
+== per arm: trials, outcomes, tokens, agent seconds, features
+  arm B: 155 trials; outcomes {'fail:AgentTimeoutError': 27, 'fail:no exception': 34, 'pass': 94}; tokens in 91,420,579 out 10,076,464; mean agent s 762; overruns 162; thinking_off_calls 0; submit_checked 0; time_nudged 0; with [time used: 0
+  arm C: 155 trials; outcomes {'fail:AgentTimeoutError': 30, 'fail:RewardFileNotFoundError': 1, 'fail:no exception': 29, 'pass': 95}; tokens in 126,696,119 out 11,053,602; mean agent s 810; overruns 503; thinking_off_calls 114; submit_checked 0; time_nudged 0; with [time used: 0
+  arm D: 155 trials; outcomes {'fail:AgentTimeoutError': 26, 'fail:no exception': 46, 'pass': 83}; tokens in 115,853,446 out 11,540,035; mean agent s 806; overruns 551; thinking_off_calls 139; submit_checked 114; time_nudged 75; with [time used: 152
+
+per-task table: jobs/cmp-per-task.csv (89 rows)

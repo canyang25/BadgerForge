@@ -1,0 +1,12 @@
+trial,submit_checked_turn,time_nudged_at_sec
+build-pmars__jHkzo5o,37,
+build-pov-ray__VHYkb8R,54,601.8
+cancel-async-tasks__jyJkjrp,19,
+mailman__LzgfmMe,64,609.7
+mcmc-sampling-stan__k7yY3oN,45,647.0
+mteb-leaderboard__VkDYCem,48,648.1
+overfull-hbox__TDg7Mqm,,608.8
+sqlite-db-truncate__7sNy7Du,12,
+torch-tensor-parallelism__iJdHMJb,22,
+tune-mjcf__CuU585k,,626.4
+video-processing__dLA2MGr,26,

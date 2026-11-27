@@ -1,0 +1,15 @@
+task,trial_id,reward,outcome,turns,input_tokens,output_tokens,seconds,exception,stop_reason,effort_switch_turn,overruns,thinking_off_calls
+configure-git-webserver,configure-git-webserver__syNjBCk,1.0,pass,20,62579,9127,123.9,,,,0,0
+count-dataset-tokens,count-dataset-tokens__VLhkPz6,1.0,pass,17,63875,15094,202.7,,,,0,0
+custom-memory-heap-crash,custom-memory-heap-crash__8pPbRoR,1.0,pass,33,499347,72458,619.5,,,13,0,0
+db-wal-recovery,db-wal-recovery__kw6pAcX,1.0,pass,14,56529,7259,64.5,,,,0,0
+gcode-to-text,gcode-to-text__x7JVHdE,0.0,timeout,47,730862,100865,900.9,AgentTimeoutError,,34,0,0
+hf-model-inference,hf-model-inference__Du2ceRf,1.0,pass,19,82330,5429,244.4,,,,0,0
+make-mips-interpreter,make-mips-interpreter__kxvVPsM,0.0,gave_up,37,837314,167189,1786.2,,no_action,23,4,0
+merge-diff-arc-agi-task,merge-diff-arc-agi-task__FHeYciH,1.0,pass,21,97819,18052,202.4,,,,0,0
+path-tracing,path-tracing__RpocDC7,0.0,timeout,47,2158260,169130,1802.1,AgentTimeoutError,,25,5,0
+pytorch-model-recovery,pytorch-model-recovery__WPLjPqf,1.0,pass,9,36594,12122,135.1,,,,0,0
+query-optimize,query-optimize__drxEQuE,0.0,wrong_answer,22,93294,22555,305.5,,,,0,0
+regex-log,regex-log__fn3UFyM,1.0,pass,11,38542,64392,449.6,,,5,1,0
+sanitize-git-repo,sanitize-git-repo__ysxtgwQ,0.0,wrong_answer,34,478412,30903,266.4,,,,0,0
+sparql-university,sparql-university__sKJZAuA,1.0,pass,14,90503,90194,640.5,,,8,2,0

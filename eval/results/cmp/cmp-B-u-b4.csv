@@ -1,0 +1,15 @@
+task,trial_id,reward,outcome,turns,input_tokens,output_tokens,seconds,exception,stop_reason,effort_switch_turn,overruns,thinking_off_calls
+circuit-fibsqrt,circuit-fibsqrt__RRHrF2V,0.0,gave_up,10,50258,114864,871.4,,no_action,6,7,0
+feal-linear-cryptanalysis,feal-linear-cryptanalysis__74UmpyH,0.0,gave_up,6,24115,65672,442.1,,no_action,6,4,0
+fix-git,fix-git__94Aam3U,1.0,pass,11,41257,7546,57.5,,,,0,0
+git-leak-recovery,git-leak-recovery__6xsFeSG,1.0,pass,13,47503,9049,70.5,,,,0,0
+install-windows-3.11,install-windows-3.11__mFZb2rA,0.0,wrong_answer,150,6313128,282031,3313.0,,max_turns,35,5,0
+largest-eigenval,largest-eigenval__nxczPfN,0.0,timeout,25,180802,105063,902.0,AgentTimeoutError,,13,0,0
+log-summary-date-ranges,log-summary-date-ranges__hZz6meM,1.0,pass,7,24706,2397,19.3,,,,0,0
+make-doom-for-mips,make-doom-for-mips__SwFehvF,0.0,timeout,51,1196083,107553,902.0,AgentTimeoutError,,31,2,0
+modernize-scientific-stack,modernize-scientific-stack__UacAGyD,1.0,pass,10,29268,5119,41.8,,,,0,0
+multi-source-data-merger,multi-source-data-merger__FErXjuq,1.0,pass,5,11567,8426,64.5,,,,0,0
+nginx-request-logging,nginx-request-logging__NpmHSaM,1.0,pass,10,26451,6519,60.6,,,,0,0
+portfolio-optimization,portfolio-optimization__ikxvNWn,1.0,pass,9,36830,5220,80.4,,,,0,0
+rstan-to-pystan,rstan-to-pystan__3isoui8,1.0,pass,42,744865,68381,962.4,,,21,1,0
+winning-avg-corewars,winning-avg-corewars__xZo3vPe,0.0,wrong_answer,22,168324,65313,510.3,,,12,1,0

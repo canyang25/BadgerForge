@@ -1,0 +1,12 @@
+task,trial_id,reward,outcome,turns,input_tokens,output_tokens,seconds,exception,stop_reason,effort_switch_turn,overruns,thinking_off_calls
+build-pmars,build-pmars__55oC3HJ,1.0,pass,55,883430,35331,394.6,,,,0,0
+build-pov-ray,build-pov-ray__CDdwJkD,1.0,pass,150,8365042,185075,2666.7,,max_turns,,5,0
+cancel-async-tasks,cancel-async-tasks__eDQB3DQ,0.0,timeout,17,152607,93917,946.5,AgentTimeoutError,,,5,2
+mailman,mailman__UpjUoNS,0.0,wrong_answer,51,951602,87640,886.0,,,,5,0
+mcmc-sampling-stan,mcmc-sampling-stan__EzkSNy6,1.0,pass,46,406066,22147,940.0,,,,0,0
+mteb-leaderboard,mteb-leaderboard__S5ALtws,1.0,pass,58,796810,17032,850.6,,,,0,0
+overfull-hbox,overfull-hbox__N2QW4cE,1.0,pass,32,419451,73106,552.9,,,,3,0
+sqlite-db-truncate,sqlite-db-truncate__LUfKjVA,0.0,gave_up,11,81169,74318,514.2,,no_action,,5,1
+torch-tensor-parallelism,torch-tensor-parallelism__p5h3yCa,0.0,wrong_answer,14,67553,52252,397.5,,,,2,0
+tune-mjcf,tune-mjcf__UeKzCLP,0.0,timeout,34,380341,115096,947.9,AgentTimeoutError,,,6,2
+video-processing,video-processing__8TpnuLK,0.0,wrong_answer,41,1047535,129263,1056.0,,,,5,1
