@@ -1,5 +1,6 @@
 import operator
 import os
+import re
 from typing import Annotated, Sequence, TypedDict, Any, Literal
 
 from langchain_core.messages import BaseMessage, HumanMessage, AIMessage, SystemMessage, ToolMessage
@@ -15,8 +16,9 @@ class GraphState(TypedDict):
     finished: bool
     input_tokens: Annotated[int, operator.add]
     output_tokens: Annotated[int, operator.add]
+    action_taken: bool
 
-def create_agent_graph(environment: Any, command_timeout_sec: int = 60, model_name: str | None = None):
+def create_agent_graph(environment: Any, command_timeout_sec: int = 120, model_name: str | None = None):
     base_model = model_name or "qwen3.8-27b"
     base_url = "https://llm-gw01.doit.wisc.edu/v1"
     api_key = os.environ.get("OPENAI_API_KEY", "dummy")
@@ -52,20 +54,22 @@ def create_agent_graph(environment: Any, command_timeout_sec: int = 60, model_na
     # Common execution tools
     class ExecuteCommand(BaseModel):
         """Execute a bash command in the terminal."""
-        command: str = Field(description="The bash command to execute.")
+        command: str = Field(description="The bash command to execute.", alias="cmd")
 
     class ReadFile(BaseModel):
         """Read the contents of a file."""
-        filepath: str = Field(description="The absolute path to the file to read.")
+        filepath: str = Field(description="The absolute path to the file to read.", alias="path")
+        offset: int | None = Field(default=None, description="Optional 1-based start line number.")
+        limit: int | None = Field(default=None, description="Optional maximum number of lines to read.")
 
     class WriteFile(BaseModel):
         """Write content to a file, overwriting it entirely."""
-        filepath: str = Field(description="The absolute path to the file to write.")
-        content: str = Field(description="The complete content to write to the file.")
+        filepath: str = Field(description="The absolute path to the file to write.", alias="path")
+        content: str = Field(description="The complete content to write to the file.", alias="text")
 
     class ReplaceInFile(BaseModel):
         """Replace an exact unique substring in a file with new content."""
-        filepath: str = Field(description="The absolute path to the file to modify.")
+        filepath: str = Field(description="The absolute path to the file to modify.", alias="path")
         old_text: str = Field(description="The exact text to find and replace.")
         new_text: str = Field(description="The new text to replace old_text with.")
 
@@ -92,17 +96,16 @@ def create_agent_graph(environment: Any, command_timeout_sec: int = 60, model_na
             description="If no existing test suite exists, provide complete verification script code with assertions. This will be written to a temporary test runner and executed."
         )
         test_script_filename: str = Field(
-            default="/tmp/__verify_test_runner.py",
+            default="/tmp/__verify_test_runner.sh",
             description="Path for the temporary test script (e.g., /tmp/__verify_test_runner.py or /tmp/__verify_test_runner.sh)."
         )
         command: str = Field(
-            default="pytest || python3 /tmp/__verify_test_runner.py",
+            default="",
             description="The shell command to execute the tests in the workspace."
         )
 
     def sanitize_output(output: str) -> str:
-        noise = '>>>> Executing external compose provider "/Users/areichert/.docker/cli-plugins/docker-compose". Please see podman-compose(1) for how to disable this message. <<<<\n'
-        output = output.replace(noise, '')
+        output = re.sub(r'>>>> Executing external compose provider.*?<<<<\r?\n?', '', output)
         output = output.replace('\x1b[4m', '').replace('\x1b[0m', '') 
         if len(output) > 4000:
             output = output[:2000] + "\n\n... [OUTPUT TRUNCATED] ...\n\n" + output[-2000:]
@@ -125,7 +128,7 @@ def create_agent_graph(environment: Any, command_timeout_sec: int = 60, model_na
         async def node(state: GraphState):
             sys_msg = SystemMessage(content=system_prompt)
             messages = state.get("messages", [])
-            effective_messages = prune_messages(messages, max_recent=10)
+            effective_messages = prune_messages(messages, max_recent=35)
             
             response = await bound_llm.ainvoke([sys_msg] + effective_messages)
             # Annotate the message with the originating agent's name for clarity
@@ -161,10 +164,11 @@ def create_agent_graph(environment: Any, command_timeout_sec: int = 60, model_na
             f"Original task requirement:\n{task_instruction}\n\n"
             f"Supervisor instructions for testing:\n{instructions}\n\n"
             "Instructions:\n"
-            "1. If an existing test suite or CLI verification command exists (e.g. pytest, cargo test, make test, openssl verify, systemctl/service check, CLI flags), prioritize running it directly.\n"
-            "2. If testing a script or library without tests, write a standalone verification script in `test_script_code`.\n"
-            "3. Keep any delays/timeouts in tests minimal to avoid timing out.\n"
-            "4. Ensure the `command` accurately executes the test suite or custom test script."
+            "1. If an existing test suite or CLI verification command exists (e.g., pytest, cargo test, make test, openssl verify, service checks, CLI binary checks), prioritize running it directly.\n"
+            "2. For compiled languages (C, C++, Rust, Go), include any required compilation step in `command` (e.g., `gcc -O3 -o /tmp/runner /tmp/__verify_test_runner.c && /tmp/runner`).\n"
+            "3. If testing a script or library without tests, provide complete verification script code in `test_script_code`. Do NOT use bash heredocs (`<< 'EOF'`) inside `command`; the system will automatically decode and write `test_script_code` to `test_script_filename`.\n"
+            "4. For non-Python tasks (shell, OpenSSL, C, daemons), use native shell commands or standalone scripts without forcing Python installation.\n"
+            "5. Ensure the `command` accurately executes the test suite or custom test script."
         )
         plan_model = llm_medium.with_structured_output(TestRunPlan)
         try:
@@ -172,12 +176,20 @@ def create_agent_graph(environment: Any, command_timeout_sec: int = 60, model_na
                 SystemMessage(content=plan_prompt),
                 HumanMessage(content=instructions),
             ])
-            target_file = plan.test_script_filename or "/tmp/__verify_test_runner.py"
-            cmd = plan.command.strip() if plan.command else f"python3 {target_file}"
+            target_file = plan.test_script_filename or "/tmp/__verify_test_runner.sh"
             script_code = plan.test_script_code
+            if plan.command and plan.command.strip():
+                cmd = plan.command.strip()
+            elif target_file.endswith(".py"):
+                cmd = f"python3 {target_file}"
+            elif target_file.endswith(".sh"):
+                cmd = f"bash {target_file}"
+            else:
+                cmd = f"{target_file}"
         except Exception:
-            target_file = "/tmp/__verify_test_runner.py"
-            cmd = "pytest || python3 /tmp/__verify_test_runner.py"
+            target_file = "/tmp/__verify_test_runner.sh"
+            # Generic fallback: execute instructions if simple command, else check test targets
+            cmd = "pytest 2>/dev/null || make test 2>/dev/null || cargo test 2>/dev/null || true"
             script_code = None
 
         stdout = ""
@@ -258,6 +270,8 @@ def create_agent_graph(environment: Any, command_timeout_sec: int = 60, model_na
         new_messages = []
         finished = state.get("finished", False)
         next_agent = ""
+        next_action_taken = state.get("action_taken", False)
+        delegated_this_turn = False
         
         for tool_call in last_message.tool_calls:
             tool_name = tool_call["name"]
@@ -267,15 +281,24 @@ def create_agent_graph(environment: Any, command_timeout_sec: int = 60, model_na
             output_str = ""
             try:
                 if tool_name == "ExecuteCommand":
-                    command = tool_args.get("command", "")
+                    command = tool_args.get("command") or tool_args.get("cmd", "")
                     result = await environment.exec(command=command, timeout_sec=command_timeout_sec)
                     stdout = sanitize_output(result.stdout or "")
                     stderr = sanitize_output(result.stderr or "")
+                    next_action_taken = True
                     output_str = f"Exit code: {result.return_code}\nStdout:\n{stdout}\nStderr:\n{stderr}"
                     
                 elif tool_name == "ReadFile":
-                    filepath = tool_args.get("filepath", "")
-                    result = await environment.exec(command=f"cat '{filepath}'", timeout_sec=15)
+                    filepath = tool_args.get("filepath") or tool_args.get("path") or tool_args.get("file_path", "")
+                    offset = tool_args.get("offset")
+                    limit = tool_args.get("limit")
+                    if offset is not None and limit is not None:
+                        start = int(offset)
+                        end = start + int(limit) - 1
+                        read_cmd = f"sed -n '{start},{end}p' '{filepath}'"
+                    else:
+                        read_cmd = f"cat '{filepath}'"
+                    result = await environment.exec(command=read_cmd, timeout_sec=15)
                     stdout = sanitize_output(result.stdout or "")
                     stderr = sanitize_output(result.stderr or "")
                     if result.return_code == 0:
@@ -284,12 +307,13 @@ def create_agent_graph(environment: Any, command_timeout_sec: int = 60, model_na
                         output_str = f"Failed to read {filepath}. Exit code: {result.return_code}\nStdout:\n{stdout}\nStderr:\n{stderr}"
                         
                 elif tool_name == "WriteFile":
-                    filepath = tool_args.get("filepath", "")
-                    content = tool_args.get("content", "")
+                    filepath = tool_args.get("filepath") or tool_args.get("path") or tool_args.get("file_path", "")
+                    content = tool_args.get("content") if "content" in tool_args else tool_args.get("text", "")
                     import base64
                     encoded = base64.b64encode(content.encode('utf-8')).decode('utf-8')
                     command = f"mkdir -p \"$(dirname '{filepath}')\" && echo '{encoded}' | base64 -d > '{filepath}'"
                     result = await environment.exec(command=command, timeout_sec=15)
+                    next_action_taken = True
                     stdout = sanitize_output(result.stdout or "")
                     stderr = sanitize_output(result.stderr or "")
                     if result.return_code == 0:
@@ -298,30 +322,41 @@ def create_agent_graph(environment: Any, command_timeout_sec: int = 60, model_na
                         output_str = f"Failed to write to {filepath}. Exit code: {result.return_code}\nStdout:\n{stdout}\nStderr:\n{stderr}"
                         
                 elif tool_name == "ReplaceInFile":
-                    filepath = tool_args.get("filepath", "")
-                    old_text = tool_args.get("old_text", "")
-                    new_text = tool_args.get("new_text", "")
+                    filepath = tool_args.get("filepath") or tool_args.get("path") or tool_args.get("file_path", "")
+                    old_text = tool_args.get("old_text") if "old_text" in tool_args else tool_args.get("old_str", tool_args.get("target", ""))
+                    new_text = tool_args.get("new_text") if "new_text" in tool_args else tool_args.get("new_str", tool_args.get("replacement", ""))
                     read_res = await environment.exec(command=f"cat '{filepath}'", timeout_sec=15)
                     if read_res.return_code != 0:
                         output_str = f"Failed to read {filepath} for replacement. Stderr: {read_res.stderr}"
-                    elif old_text not in read_res.stdout:
-                        output_str = f"Error: old_text not found in {filepath}. Please verify the exact text."
                     else:
-                        updated_content = read_res.stdout.replace(old_text, new_text, 1)
-                        import base64
-                        encoded = base64.b64encode(updated_content.encode('utf-8')).decode('utf-8')
-                        write_cmd = f"echo '{encoded}' | base64 -d > '{filepath}'"
-                        res = await environment.exec(command=write_cmd, timeout_sec=15)
-                        if res.return_code == 0:
-                            output_str = f"Successfully updated {filepath}"
+                        raw_content = re.sub(r'>>>> Executing external compose provider.*?<<<<\r?\n?', '', read_res.stdout or "")
+                        match_count = raw_content.count(old_text)
+                        if match_count == 0:
+                            output_str = f"Error: old_text not found in {filepath}. Please verify the exact text."
+                        elif match_count > 1:
+                            output_str = f"Error: old_text matches {match_count} locations in {filepath}. Please include more surrounding context to make the match unique."
                         else:
-                            output_str = f"Failed to write updated content to {filepath}: {res.stderr}"
+                            updated_content = raw_content.replace(old_text, new_text, 1)
+                            import base64
+                            encoded = base64.b64encode(updated_content.encode('utf-8')).decode('utf-8')
+                            write_cmd = f"mkdir -p \"$(dirname '{filepath}')\" && echo '{encoded}' | base64 -d > '{filepath}'"
+                            res = await environment.exec(command=write_cmd, timeout_sec=15)
+                            if res.return_code == 0:
+                                next_action_taken = True
+                                output_str = f"Successfully updated {filepath}"
+                            else:
+                                output_str = f"Failed to write updated content to {filepath}: {res.stderr}"
 
                 elif tool_name == "FinishTask":
                     finished = True
                     output_str = "Task finished recorded."
                     
                 elif tool_name == "Delegate":
+                    if delegated_this_turn:
+                        output_str = "Action rejected: You have already delegated a task in this turn. Delegate to only one worker at a time."
+                        new_messages.append(ToolMessage(content=output_str, tool_call_id=tool_call_id, name=tool_name))
+                        continue
+                    delegated_this_turn = True
                     raw_worker = tool_args.get("worker", "")
                     instructions = tool_args.get("instructions", "")
                     
@@ -341,6 +376,7 @@ def create_agent_graph(environment: Any, command_timeout_sec: int = 60, model_na
                         continue
 
                     output_str = f"Successfully delegated task to {worker}."
+                    next_action_taken = False # Reset for new worker
                     next_agent = worker
                     new_messages.append(ToolMessage(content=output_str, tool_call_id=tool_call_id, name=tool_name))
                     new_messages.append(HumanMessage(content=f"Message from Supervisor to {worker}:\n{instructions}\n\nYou MUST use your tools to perform this task. Do not just hallucinate results and report back without acting."))
@@ -349,30 +385,21 @@ def create_agent_graph(environment: Any, command_timeout_sec: int = 60, model_na
                 elif tool_name == "ReportBack":
                     result_str = tool_args.get("result", "")
                     sender = state.get("sender", "")
-
-                    # Check if action was performed in current tool calls batch first
-                    has_acted = any(
-                        isinstance(m, ToolMessage) and m.name in ("WriteFile", "ReplaceInFile", "ExecuteCommand")
-                        for m in new_messages
+                    
+                    # Check if an action was taken in a previous turn OR in this turn.
+                    acted_in_this_batch = any(
+                        m.name in ("WriteFile", "ReplaceInFile", "ExecuteCommand")
+                        for m in new_messages if isinstance(m, ToolMessage)
                     )
-                    if not has_acted:
-                        for msg in reversed(messages):
-                            if isinstance(msg, HumanMessage) and f"Message from Supervisor to {sender}" in (msg.content or ""):
-                                break
-                            if isinstance(msg, ToolMessage) and msg.name:
-                                if sender in ("Coder", "MediumCoder", "ExpertCoder") and msg.name in ("WriteFile", "ReplaceInFile", "ExecuteCommand"):
-                                    has_acted = True
-                                    break
-                                elif sender == "Researcher" and msg.name in ("ExecuteCommand", "ReadFile"):
-                                    has_acted = True
-                                    break
-
+                    has_acted = state.get("action_taken", False) or acted_in_this_batch
+                    
                     if not has_acted and sender in ("Coder", "MediumCoder", "ExpertCoder"):
                         action_name = "WriteFile, ReplaceInFile, or ExecuteCommand to implement/build code changes"
                         output_str = f"Action rejected: You have NOT executed any actions yet. You MUST call {action_name} before calling ReportBack."
                         next_agent = sender
                     else:
-                        output_str = f"Reported back to Supervisor. Result: {result_str}"
+                        output_str = f"Reported back to Supervisor from {sender}. Result: {result_str}"
+                        next_action_taken = False # Reset after successful report
                         next_agent = "Supervisor"
                     
                 else:
@@ -382,10 +409,31 @@ def create_agent_graph(environment: Any, command_timeout_sec: int = 60, model_na
                 
             new_messages.append(ToolMessage(content=output_str, tool_call_id=tool_call_id, name=tool_name))
             
+        # Check for analysis paralysis (endless ExecuteCommand/ReadFile loops)
+        if not finished and not next_agent:
+            read_only_turns = 0
+            for m in reversed(state["messages"]):
+                if isinstance(m, AIMessage):
+                    if hasattr(m, "tool_calls") and m.tool_calls:
+                        is_read_only = all(tc.get("name") in ("ExecuteCommand", "ReadFile") for tc in m.tool_calls)
+                        if is_read_only:
+                            read_only_turns += 1
+                        else:
+                            break
+                    else:
+                        break
+                elif isinstance(m, HumanMessage) and "SYSTEM WARNING:" in str(m.content):
+                    break
+            
+            if read_only_turns >= 5:
+                nudge_str = "SYSTEM WARNING: You are trapped in an analysis loop (5+ consecutive exploration turns). Stop executing ExecuteCommand/ReadFile. IMMEDIATELY take concrete action (WriteFile, ReplaceInFile) or call FinishTask/ReportBack/Delegate."
+                new_messages.append(HumanMessage(content=nudge_str))
+            
         return {
             "messages": new_messages, 
             "finished": finished,
             "next_agent": next_agent if next_agent else state.get("next_agent", ""),
+            "action_taken": next_action_taken,
             "input_tokens": 0, "output_tokens": 0
         }
 
@@ -404,9 +452,10 @@ def create_agent_graph(environment: Any, command_timeout_sec: int = 60, model_na
         if next_a and next_a in ["Supervisor", "Researcher", "Coder", "MediumCoder", "ExpertCoder", "Tester"]:
             return next_a
         
-        # Nudges go back to sender
-        if isinstance(last_message, HumanMessage) and last_message.content.startswith("You must call a tool"):
-            return state.get("sender", "Supervisor")
+        # Nudges and warnings go back to sender
+        if isinstance(last_message, HumanMessage) and isinstance(last_message.content, str):
+            if last_message.content.startswith("You must call a tool") or last_message.content.startswith("SYSTEM WARNING:"):
+                return state.get("sender", "Supervisor")
             
         # Tool outputs route back to sender if no next_agent was assigned
         if isinstance(last_message, ToolMessage):
@@ -418,37 +467,44 @@ def create_agent_graph(environment: Any, command_timeout_sec: int = 60, model_na
     
     supervisor_prompt = (
         "You are the Supervisor Agent managing a software engineering task in a headless container. "
-        "You coordinate specialized worker agents:\n"
-        "1. Researcher: Explores the environment, inspects existing files/data files, checks packages and requirements.\n"
-        "2. Coder: Standard coder (low reasoning effort). Use for initial implementations of straightforward tasks.\n"
-        "3. MediumCoder: Intermediate coder (medium reasoning effort). Use when Coder's solution fails tests or requires debugging.\n"
-        "4. ExpertCoder: Deep reasoning coder. Use only when MediumCoder fails or for persistent bugs.\n"
-        "5. Tester: Runs bash commands (e.g., pytest, python scripts) using ExecuteCommand to verify functionality and edge cases.\n\n"
-        "Strict Escalation & De-escalation Workflow:\n"
-        "1. GROUNDING: If the task mentions existing files or directories, ALWAYS delegate to Researcher first to inspect file contents and schemas.\n"
-        "2. Initial implementation: Delegate to Coder (or MediumCoder for complex math, concurrency, or algorithms).\n"
-        "3. Verification: Delegate to Tester to execute real verification commands in the workspace.\n"
-        "4. Handling Failures:\n"
-        "   - First failure: Delegate error trace and fix instructions to MediumCoder (medium reasoning effort).\n"
-        "   - Second or repeated failures: Escalate to ExpertCoder with the full context and failed assertions.\n"
-        "5. De-escalation: When test results improve (e.g., the core logic now works and only minor adjustments, formatting, or small fixes remain), DE-ESCALATE back to MediumCoder or Coder. Do not waste tokens on ExpertCoder for minor fixes.\n"
-        "6. After every code modification, always delegate to Tester to verify the fix.\n"
-        "7. Once tests pass with exit code 0 and the solution is verified, clean up any temporary test scripts and call FinishTask.\n"
-        "Do NOT call FinishTask without verified test execution."
+        "You coordinate specialized worker agents: Researcher, Coder, MediumCoder, ExpertCoder, and Tester.\n\n"
+        "Strict Workflow & Strategy:\n"
+        "1. **PLAN & RECONNAISSANCE**: On your FIRST turn, briefly state your numbered plan. Then, inspect the workspace using ExecuteCommand (`pwd && ls -la`) or delegate to Researcher to discover files, packages, and schemas BEFORE taking code actions.\n"
+        "2. **SANITY-CHECK CORE TOOLS**: For tasks involving complex tools (e.g., QEMU, compilers), your FIRST action should be a minimal command to verify the tool works (e.g., `qemu-system-x86_64 --version`). If it crashes with an OS/architecture error (e.g., Rosetta unimplemented syscall), DO NOT attempt to patch binaries, recompile libraries, or use LD_PRELOAD. Report the finding and call `FinishTask` immediately. Do not waste time on broken environments.\n"
+        "3. **ENVIRONMENT SETUP**: When installing system packages (e.g., via `apt-get`), NEVER run the command in the background using `&`. Always wait for package managers to finish synchronously to avoid `dpkg` lock deadlocks.\n"
+        "4. **STRATEGY SELECTION**: Based on reconnaissance, choose a strategy:\n"
+        "   - For **setup/DevOps tasks**, create a linear shell command plan.\n"
+        "   - For **complex code generation** (e.g., writing a large JSON, a complex algorithm from scratch), plan an **iterative development loop**. Delegate to a Coder to implement a small piece, then immediately delegate to the Tester to verify that piece. Repeat for each part of the implementation. Do not try to generate the entire complex file in one step.\n"
+        "5. **GROUNDING & ENVIRONMENT**: Never assume file structures or installed tools. If a command (e.g., python3, gcc) is not found, remember on Debian/Ubuntu to run `apt-get update -qq` BEFORE `apt-get install -y <pkg>`.\n"
+        "6. **DAEMONS & SERVERS**: When launching background services (e.g., pypi-server, qemu), ALWAYS redirect stdout/stderr: `nohup <cmd> > /tmp/daemon.log 2>&1 &` so the shell returns immediately.\n"
+        "7. **IMPLEMENTATION & VERIFICATION LOOP**:\n"
+        "   - **Delegate Implementation**: Delegate to Coder (or MediumCoder for complex tasks) following your chosen strategy.\n"
+        "   - **Delegate Verification**: After EVERY code modification, ALWAYS delegate to Tester to verify the fix.\n"
+        "8. **HANDLING FAILURES**:\n"
+        "   - **First failure**: Delegate error trace and fix instructions to MediumCoder.\n"
+        "   - **Repeated failures**: Escalate to ExpertCoder with the full context.\n"
+        "   - **De-escalation**: When test results improve, DE-ESCALATE back to MediumCoder or Coder.\n"
+        "9. **TIME LIMIT**: You are operating under a strict time limit. Do not let yourself or workers get trapped in endless loops of Python analysis scripts or command executions. Make decisions quickly.\n"
+        "10. **FINISH**: Once all tests pass and the solution is fully verified, call FinishTask.\n"
+        "Do NOT call FinishTask without verified test execution unless the environment is irreparably broken."
     )
     
     researcher_prompt = (
         "You are the Researcher Agent. Your supervisor has delegated a task to you. "
-        "Use ExecuteCommand (ls, grep, cat) and ReadFile to investigate the environment. "
-        "Do NOT write code or run tests. "
+        "Use ExecuteCommand (ls, grep) and ReadFile to investigate the environment. "
+        "CRITICAL: Do NOT use `sed`, `head`, or `tail` to read files line-by-line. ALWAYS use the `ReadFile` tool to read file contents, as it safely handles truncation and offsets for you.\n"
+        "Do NOT write custom Python or Perl scripts to mathematically model or render data. Inspect the text directly and report findings.\n"
+        "Do NOT write application code or run tests. "
         "When you have finished gathering information, use the ReportBack tool to summarize your findings for the supervisor."
     )
     
     coder_prompt = (
         "You are the Coder Agent. Your supervisor has delegated a task to you. "
-        "You MUST use the WriteFile tool to implement code changes. You may use ExecuteCommand for build, compilation, or package management commands.\n"
+        "You MUST use the `ReplaceInFile` or `WriteFile` tool to implement code changes. Prefer `ReplaceInFile` for targeted edits to avoid rewriting entire files. You may use ExecuteCommand for build, compilation, or package management commands.\n"
         "Guidelines:\n"
         "- Write complete, correct, production-grade code.\n"
+        "- **TIME LIMIT**: You are under a strict time limit. Do NOT run endless analysis scripts. Write code quickly.\n"
+        "- Do NOT write temporary Python scripts just to parse or analyze data. Inspect files directly or write the final solution.\n"
         "- Do NOT write temporary test scripts or run tests; testing is handled exclusively by the Tester agent.\n"
         "- Avoid hardcoding assumptions: inspect files and error messages carefully.\n"
         "- Preserve expected exceptions and signatures exactly without unintended wrapping.\n"
@@ -459,9 +515,10 @@ def create_agent_graph(environment: Any, command_timeout_sec: int = 60, model_na
     
     medium_coder_prompt = (
         "You are the MediumCoder Agent equipped with medium reasoning capabilities. Your supervisor has delegated a test failure or code fix to you.\n"
-        "You MUST use the WriteFile tool to implement code changes. You may use ExecuteCommand for build, compilation, or package management commands.\n"
+        "You MUST use the `ReplaceInFile` or `WriteFile` tool to implement code changes. Prefer `ReplaceInFile` for targeted edits to avoid rewriting entire files. You may use ExecuteCommand for build, compilation, or package management commands.\n"
         "Guidelines:\n"
         "- Do NOT write temporary test scripts; testing is handled exclusively by Tester.\n"
+        "- **TIME LIMIT**: You are under a strict time limit. Do NOT get trapped in endless loops of `ExecuteCommand`. Write your solution quickly.\n"
         "- Analyze the failure traceback, test outputs, and existing code carefully before modifying files.\n"
         "- Look for subtle edge cases: exception handling, resource cleanup, boundary conditions, and type invariants.\n"
         "- Do NOT swallow or wrap raw exceptions unless explicitly specified by the interface.\n"
@@ -470,13 +527,15 @@ def create_agent_graph(environment: Any, command_timeout_sec: int = 60, model_na
     
     expert_coder_prompt = (
         "You are the ExpertCoder Agent equipped with deep reasoning capabilities. Your supervisor has escalated a persistent bug or complex algorithmic problem to you after earlier attempts failed.\n"
-        "You MUST use the WriteFile tool to implement code changes. You may use ExecuteCommand for build, compilation, or package management commands.\n"
+        "You MUST use the `ReplaceInFile` or `WriteFile` tool to implement code changes. Prefer `ReplaceInFile` for targeted edits to avoid rewriting entire files. You may use ExecuteCommand for build, compilation, or package management commands.\n"
         "Guidelines:\n"
-        "- Do NOT write temporary test scripts; testing is handled exclusively by Tester.\n"
-        "- Carefully analyze the problem, failure trace, and edge cases (especially concurrency invariants, async cleanup, signals, or compiler constraints).\n"
+        "- **CRITICAL: Thoroughly plan your changes BEFORE acting, but DO NOT get trapped in endless `ExecuteCommand` loops. Write your plan in your message, then immediately use `WriteFile` or `ReplaceInFile`. You are on a strict time limit.**\n"
+        "- Do NOT write temporary Python scripts just to parse or analyze data. Write the final solution directly.\n"
+        "- Do NOT write temporary test scripts; testing is handled exclusively by the Tester agent.\n"
+        "- Carefully analyze the problem, failure trace, and edge cases (especially concurrency invariants, async cleanup, signals, or compiler constraints) in your plan.\n"
         "- Ensure atomic operations, strict lifecycle management, and accurate signal/exception propagation.\n"
         "- Write clean, production-grade, bug-free implementations that account for edge cases.\n"
-        "- Do NOT call ReportBack without actually using WriteFile.\n"
+        "- Do NOT call ReportBack without actually using WriteFile, ReplaceInFile, or ExecuteCommand.\n"
         "- When done writing files, call ReportBack summarizing your analysis and the changes made."
     )
     
@@ -505,6 +564,7 @@ def create_agent_graph(environment: Any, command_timeout_sec: int = 60, model_na
         "Coder": "Coder",
         "MediumCoder": "MediumCoder",
         "ExpertCoder": "ExpertCoder",
+        "Tester": "Tester",
         END: END,
     }
 

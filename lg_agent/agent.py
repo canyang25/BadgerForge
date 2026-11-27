@@ -8,14 +8,15 @@ from typing import Dict, Any
 from harbor.agents.base import BaseAgent
 from harbor.environments.base import BaseEnvironment
 from harbor.models.agent.context import AgentContext
-from langchain_core.messages import SystemMessage, HumanMessage
+from langchain_core.messages import SystemMessage, HumanMessage, ToolMessage
 
 from lg_agent.graph import create_agent_graph
 from lg_agent.models import RunMetadata
 from lg_agent.observability import log_run
 
-MAX_TURNS = int(os.environ.get("AGENT_MAX_TURNS", "100"))
-COMMAND_TIMEOUT_SEC = int(os.environ.get("AGENT_COMMAND_TIMEOUT_SEC", "60"))
+MAX_TURNS = int(os.environ.get("AGENT_MAX_TURNS", "150"))
+MAX_WALL_CLOCK_SEC = int(os.environ.get("AGENT_MAX_WALL_CLOCK_SEC", "840"))
+COMMAND_TIMEOUT_SEC = int(os.environ.get("AGENT_COMMAND_TIMEOUT_SEC", "120"))
 
 class LGAgent(BaseAgent):
     @staticmethod
@@ -52,7 +53,8 @@ class LGAgent(BaseAgent):
             "next_agent": "",
             "finished": False,
             "input_tokens": 0,
-            "output_tokens": 0
+            "output_tokens": 0,
+            "action_taken": False,
         }
         
         total_in_tokens = 0
@@ -75,14 +77,19 @@ class LGAgent(BaseAgent):
                 context.n_input_tokens = total_in_tokens
                 context.n_output_tokens = total_out_tokens
                 context.metadata = {
+                    **(context.metadata or {}),
                     "turns": turn_count,
                     "finished": step.get("finished", False),
                     "messages": [
-                        {"role": "user" if isinstance(m, HumanMessage) else "assistant", "content": m.content}
+                        {"role": "user" if isinstance(m, HumanMessage) else ("tool" if isinstance(m, ToolMessage) else "assistant"), "content": m.content}
                         if hasattr(m, "content") else str(m)
                         for m in step.get("messages", [])
                     ],
                 }
+                
+                if time.time() - start_time > MAX_WALL_CLOCK_SEC:
+                    final_status = "max_time_reached"
+                    break
                 
                 if step.get("finished", False) or turn_count >= MAX_TURNS:
                     break
@@ -127,10 +134,24 @@ class LGAgent(BaseAgent):
                 except Exception as exc:
                     self.logger.error(f"Failed writing trajectory to {trajectory_file}: {exc}")
 
+            # Derive task name from logs_dir or metadata
+            task_name = context.metadata.get("test_name")
+            if not task_name or task_name == "unknown_task":
+                if hasattr(self, "logs_dir") and self.logs_dir:
+                    p = Path(self.logs_dir)
+                    if p.name == "agent" and p.parent:
+                        task_name = p.parent.name.split("__")[0]
+                    else:
+                        task_name = p.name.split("__")[0]
+                elif getattr(context, "task_id", None):
+                    task_name = getattr(context, "task_id")
+                else:
+                    task_name = "unknown_task"
+
             # Run metadata logging
             run_meta = RunMetadata(
                 agent_version=self.version(),
-                test_name=context.metadata.get("test_name", "unknown_task"),
+                test_name=task_name,
                 total_input_tokens=total_in_tokens,
                 total_output_tokens=total_out_tokens,
                 execution_time_sec=exec_time,
